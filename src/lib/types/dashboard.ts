@@ -63,12 +63,16 @@ export interface DashboardSessionState {
   clockRunning: boolean;
 
   currentLap: number | null;
+  totalLaps: number | null;
+  remainingLaps: number | null;
 
   qualifyingPart: number | null;
   qualifyingPartLabel: 'Q1' | 'Q2' | 'Q3' | null;
 
   trackStatusCode: TrackStatusCode;
   trackStatusMessage: string;
+
+  weather: WeatherState;
 
   cutOffTime: string;
   cutOffPercentage: string;
@@ -129,4 +133,14 @@ export interface BestSector {
   index: number;
   value: string;
   position: number | null;
+}
+
+export interface WeatherState {
+  airTemp: string;
+  trackTemp: string;
+  humidity: string;
+  pressure: string;
+  rainfall: string;
+  windDirection: string;
+  windSpeed: string;
 }

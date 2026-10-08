@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Settings2 from 'lucide-svelte/icons/settings-2';
+
   import { columnState } from '../../stores/columnsStore';
   import { driverColumns, type DriverColumnId } from '../../types/columns';
 
@@ -18,7 +20,7 @@
     onclick={() => (open = !open)}
     title="Columns"
   >
-    ⚙
+    <Settings2 size={14} strokeWidth={2.4} />
   </button>
 
   {#if open}

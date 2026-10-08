@@ -1,7 +1,7 @@
 <script lang="ts">
   import { columnState } from '../../stores/columnsStore';
   import type { ColumnDefinition } from '../../types/columns';
-  import type { DriverRow } from '../../types/dashboard';
+  import type { DriverRow, TrackStatusCode  } from '../../types/dashboard';
 
   import ColumnDragGhost from './ColumnDragGhost.svelte';
   import ColumnMenu from './ColumnMenu.svelte';
@@ -11,9 +11,10 @@
   interface Props {
     drivers: DriverRow[];
     columns: ColumnDefinition[];
+    trackStatusCode?: TrackStatusCode;
   }
 
-  let { drivers, columns }: Props = $props();
+  let { drivers, columns, trackStatusCode = '1' }: Props = $props();
 
   let previewColumns = $state<ColumnDefinition[] | null>(null);
   let dragGhost = $state<{
@@ -22,6 +23,12 @@
     y: number;
     width: number;
   } | null>(null);
+
+  let trackAlertClass = $derived.by(() => {
+    if (trackStatusCode === '5') return 'track-alert-red';
+    if (['2', '4', '6', '7'].includes(trackStatusCode)) return 'track-alert-yellow';
+    return '';
+  });
 
   let displayedColumns = $derived(previewColumns ?? columns);
 
@@ -45,7 +52,7 @@
   }
 </script>
 
-<section class="relative w-full rounded border border-zinc-800 bg-zinc-900">
+<section class={["relative w-full rounded border border-zinc-800 bg-zinc-900", trackAlertClass]}>
   <div class="absolute right-2 top-2 z-30">
     <ColumnMenu />
   </div>
@@ -77,3 +84,33 @@
     />
   {/if}
 </section>
+
+<style>
+  @keyframes yellow-table-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 1px rgb(250 204 21 / 0.2);
+    }
+
+    50% {
+      box-shadow: 0 0 0 2px rgb(250 204 21 / 0.75), 0 0 28px rgb(250 204 21 / 0.18);
+    }
+  }
+
+  @keyframes red-table-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 1px rgb(239 68 68 / 0.25);
+    }
+
+    50% {
+      box-shadow: 0 0 0 2px rgb(239 68 68 / 0.8), 0 0 32px rgb(239 68 68 / 0.24);
+    }
+  }
+
+  .track-alert-yellow {
+    animation: yellow-table-pulse 1.4s ease-in-out infinite;
+  }
+
+  .track-alert-red {
+    animation: red-table-pulse 1.1s ease-in-out infinite;
+  }
+</style>

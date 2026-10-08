@@ -67,7 +67,7 @@ export const mockRaceSessionState: DashboardSessionState = {
 	sessionKey: 11731,
 	meetingKey: 1308,
 	meetingName: 'Bahrain Grand Prix',
-	circuitName: 'Kuala Lumpur',
+	circuitName: 'Bahrain International Circuit',
 	countryCode: 'BRN',
 	sessionType: 'Race',
 	sessionName: 'Race',
@@ -79,13 +79,24 @@ export const mockRaceSessionState: DashboardSessionState = {
 	clockUtc: '2026-10-04T08:35:40.5255667Z',
 	clockRemaining: '01:57:19',
 	clockRunning: true,
-	currentLap: 55,
+	currentLap: 36,
+	totalLaps: 55,
+	remainingLaps: 19,
 	qualifyingPart: null,
 	qualifyingPartLabel: null,
 	trackStatusCode: '1',
 	trackStatusMessage: 'AllClear',
 	cutOffTime: '',
-	cutOffPercentage: ''
+	cutOffPercentage: '',
+	weather: {
+		airTemp: '26.1',
+		trackTemp: '33.8',
+		humidity: '84.0',
+		pressure: '1006.3',
+		rainfall: '0',
+		windDirection: '40',
+		windSpeed: '0.9'
+	}
 };
 
 export const mockRaceDriverRows: DriverRow[] = [
@@ -512,7 +523,7 @@ export const mockQualifyingSessionState: DashboardSessionState = {
 	sessionKey: 11730,
 	meetingKey: 1308,
 	meetingName: 'Bahrain Grand Prix',
-	circuitName: 'Kuala Lumpur',
+	circuitName: 'Bahrain International Circuit',
 	countryCode: 'BRN',
 	sessionType: 'Qualifying',
 	sessionName: 'Qualifying',
@@ -525,12 +536,23 @@ export const mockQualifyingSessionState: DashboardSessionState = {
 	clockRemaining: '00:00:00',
 	clockRunning: false,
 	currentLap: null,
+	totalLaps: null,
+	remainingLaps: null,
 	qualifyingPart: 3,
 	qualifyingPartLabel: 'Q3',
 	trackStatusCode: '1',
 	trackStatusMessage: 'AllClear',
 	cutOffTime: '1:43.230',
-	cutOffPercentage: '107'
+	cutOffPercentage: '107',
+	weather: {
+		airTemp: '31.0',
+		trackTemp: '45.6',
+		humidity: '61.7',
+		pressure: '1008.4',
+		rainfall: '0',
+		windDirection: '2',
+		windSpeed: '3.0'
+	}
 };
 
 export const mockQualifyingDriverRows: DriverRow[] = [
