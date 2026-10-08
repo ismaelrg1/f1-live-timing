@@ -1,17 +1,33 @@
-<PageShell>
+<script lang="ts">
+  import DriverTable from '../lib/components/driver-table/DriverTable.svelte';
+
+  import { mockDriverRows } from '../lib/data/mockDashboard';
+  import { driverColumns } from '../lib/types/columns';
+</script>
+
+<section class="min-h-screen bg-zinc-950 p-6 text-zinc-100">
+  <h1 class="mb-4 text-xl font-bold">Prueba DriverTable</h1>
+
+  <DriverTable
+    drivers={mockDriverRows}
+    columns={driverColumns}
+  />
+</section>
+
+<!-- <PageShell>
   <DashboardHeader session={session} />
 
   <DriverTable
     drivers={drivers}
     columns={visibleColumns}
   />
-</PageShell>
+</PageShell> -->
 
 
 
 
 
-<script lang="ts">
+<!-- <script lang="ts">
     // lógica Typescript
     import { mockDriverRows, mockSessionState } from '../lib/data/mockDashboard';
     import type { DriverRow } from '../lib/types/dashboard';
@@ -198,8 +214,6 @@
   </section>
 </main>
 
-
-<!-- HTML / markup -->
 
 <h1>Welcome to SvelteKit</h1>
 <p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
@@ -565,4 +579,4 @@
       margin-top: 16px;
     }
   }
-</style>
+</style> -->

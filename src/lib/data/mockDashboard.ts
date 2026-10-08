@@ -3,6 +3,7 @@ import type {
 	Compound,
 	DashboardSessionState,
 	DriverRow,
+	LastLapSector,
 	MiniSectorStatus,
 	Sector,
 	Stint
@@ -27,10 +28,21 @@ const sector = (
 	segments: segmentStatuses(segments)
 });
 
-const bestSector = (index: number, value: string, position: number): BestSector => ({
+const bestSector = (index: number, value: string, position: number | null): BestSector => ({
 	index,
 	value,
 	position
+});
+
+const lastLapSector = (
+	index: number,
+	value: string,
+	options: Partial<Pick<LastLapSector, 'personalFastest' | 'overallFastest'>> = {}
+): LastLapSector => ({
+	index,
+	value,
+	personalFastest: options.personalFastest ?? false,
+	overallFastest: options.overallFastest ?? false
 });
 
 const stint = (
@@ -105,6 +117,11 @@ export const mockRaceDriverRows: DriverRow[] = [
 				overallFastest: true
 			})
 		],
+		lastLapSectors: [
+			lastLapSector(0, '25.516'),
+			lastLapSector(1, '32.883', { personalFastest: true, overallFastest: true }),
+			lastLapSector(2, '39.821', { personalFastest: true, overallFastest: true })
+		],
 		bestSectors: [bestSector(0, '25.327', 8), bestSector(1, '32.883', 1), bestSector(2, '39.821', 1)],
 		laps: 55,
 		pitStops: 3,
@@ -152,6 +169,11 @@ export const mockRaceDriverRows: DriverRow[] = [
 			sector(0, '25.330', '25.330', [2048, 2048, 2048, 2048, 2048]),
 			sector(1, '33.299', '33.299', [2048, 2048, 2048, 2048, 2048, 0], { personalFastest: true }),
 			sector(2, '40.301', '40.301', [0, 0, 0, 0, 0, 0, 0, 0, 0])
+		],
+		lastLapSectors: [
+			lastLapSector(0, '25.330'),
+			lastLapSector(1, '33.299', { personalFastest: true }),
+			lastLapSector(2, '40.301')
 		],
 		bestSectors: [bestSector(0, '25.032', 2), bestSector(1, '33.299', 2), bestSector(2, '40.158', 2)],
 		laps: 55,
@@ -201,6 +223,11 @@ export const mockRaceDriverRows: DriverRow[] = [
 			sector(1, '33.481', '33.481', [2048, 2048, 2048, 2048, 0, 0]),
 			sector(2, '40.540', '40.540', [0, 0, 0, 0, 0, 0, 0, 0, 0])
 		],
+		lastLapSectors: [
+			lastLapSector(0, '25.424'),
+			lastLapSector(1, '33.481'),
+			lastLapSector(2, '40.540')
+		],
 		bestSectors: [bestSector(0, '24.992', 1), bestSector(1, '33.301', 3), bestSector(2, '40.317', 4)],
 		laps: 55,
 		pitStops: 2,
@@ -221,6 +248,259 @@ export const mockRaceDriverRows: DriverRow[] = [
 			stint(1, 'MEDIUM', 15, 3, { new: false, lapTime: '1:40.178', lapNumber: 33 }),
 			stint(2, 'SOFT', 15, 3, { new: false, lapTime: '1:38.610', lapNumber: 53, lapFlags: 1 })
 		],
+		knockedOut: false,
+		cutoff: false,
+		timeDiffToFastest: '',
+		timeDiffToPositionAhead: ''
+	},
+	{
+		position: '4',
+		racingNumber: '81',
+		tla: 'PIA',
+		driverName: 'Oscar PIASTRI',
+		broadcastName: 'O PIASTRI',
+		team: 'McLaren',
+		teamColour: 'FF8000',
+		gapToLeader: '+12.410',
+		intervalToAhead: '+7.491',
+		catchingAhead: true,
+		lastLap: '1:39.102',
+		lastLapPersonalBest: true,
+		lastLapOverallBest: false,
+		bestLap: '1:38.912',
+		bestLapLap: 49,
+		bestLapRank: 4,
+		sectors: [
+			sector(0, '25.102', '25.204', [2049, 2049, 2048, 2050, 2048], { personalFastest: true }),
+			sector(1, '33.745', '33.821', [2048, 2052, 2048, 2049, 2048, 0], { personalFastest: true }),
+			sector(2, '', '40.265', [0, 0, 0, 0, 0, 0, 0, 0, 0])
+		],
+		lastLapSectors: [
+			lastLapSector(0, '25.204'),
+			lastLapSector(1, '33.821'),
+			lastLapSector(2, '40.265')
+		],
+		bestSectors: [bestSector(0, '25.102', 4), bestSector(1, '33.745', 4), bestSector(2, '40.265', 3)],
+		laps: 54,
+		pitStops: 2,
+		compound: 'MEDIUM',
+		tyreLaps: 22,
+		stintLaps: 22,
+		isNewTyre: false,
+		tyresNotChanged: false,
+		gridPosition: 8,
+		gridDelta: 4,
+		retired: false,
+		stopped: false,
+		inPit: false,
+		pitOut: false,
+		outlap: false,
+		stints: [
+			stint(0, 'SOFT', 16, 0),
+			stint(1, 'MEDIUM', 22, 0, { lapTime: '1:38.912', lapNumber: 49, lapFlags: 1 })
+		],
+		knockedOut: false,
+		cutoff: false,
+		timeDiffToFastest: '',
+		timeDiffToPositionAhead: ''
+	},
+	{
+		position: '5',
+		racingNumber: '16',
+		tla: 'LEC',
+		driverName: 'Charles LECLERC',
+		broadcastName: 'C LECLERC',
+		team: 'Ferrari',
+		teamColour: 'ED1131',
+		gapToLeader: '+18.034',
+		intervalToAhead: '+5.624',
+		catchingAhead: false,
+		lastLap: '1:41.012',
+		lastLapPersonalBest: false,
+		lastLapOverallBest: false,
+		bestLap: '1:39.201',
+		bestLapLap: 42,
+		bestLapRank: 5,
+		sectors: [
+			sector(0, '', '25.609', [2064, 2064, 2064, 0, 0]),
+			sector(1, '', '33.902', [0, 0, 0, 0, 0, 0]),
+			sector(2, '', '40.478', [0, 0, 0, 0, 0, 0, 0, 0, 0])
+		],
+		lastLapSectors: [
+			lastLapSector(0, '25.609'),
+			lastLapSector(1, '33.902'),
+			lastLapSector(2, '40.478')
+		],
+		bestSectors: [bestSector(0, '25.271', 6), bestSector(1, '33.761', 5), bestSector(2, '40.169', 2)],
+		laps: 54,
+		pitStops: 3,
+		compound: 'HARD',
+		tyreLaps: 1,
+		stintLaps: 1,
+		isNewTyre: true,
+		tyresNotChanged: false,
+		gridPosition: 4,
+		gridDelta: -1,
+		retired: false,
+		stopped: false,
+		inPit: false,
+		pitOut: true,
+		outlap: true,
+		stints: [
+			stint(0, 'MEDIUM', 21, 0),
+			stint(1, 'SOFT', 20, 0),
+			stint(2, 'HARD', 1, 0, { lapNumber: 54 })
+		],
+		knockedOut: false,
+		cutoff: false,
+		timeDiffToFastest: '',
+		timeDiffToPositionAhead: ''
+	},
+	{
+		position: '6',
+		racingNumber: '63',
+		tla: 'RUS',
+		driverName: 'George RUSSELL',
+		broadcastName: 'G RUSSELL',
+		team: 'Mercedes',
+		teamColour: '00D7B6',
+		gapToLeader: '+1 LAP',
+		intervalToAhead: '+24.801',
+		catchingAhead: false,
+		lastLap: '',
+		lastLapPersonalBest: false,
+		lastLapOverallBest: false,
+		bestLap: '1:39.880',
+		bestLapLap: 38,
+		bestLapRank: 7,
+		sectors: [
+			sector(0, '', '25.801', [2052, 2052, 0, 0, 0], { stopped: true }),
+			sector(1, '', '34.102', [0, 0, 0, 0, 0, 0], { stopped: true }),
+			sector(2, '', '40.802', [0, 0, 0, 0, 0, 0, 0, 0, 0], { stopped: true })
+		],
+		lastLapSectors: [
+			lastLapSector(0, '25.801'),
+			lastLapSector(1, '34.102'),
+			lastLapSector(2, '40.802')
+		],
+		bestSectors: [bestSector(0, '25.548', 9), bestSector(1, '33.990', 8), bestSector(2, '40.342', 5)],
+		laps: 47,
+		pitStops: 2,
+		compound: 'INTERMEDIATE',
+		tyreLaps: 12,
+		stintLaps: 12,
+		isNewTyre: false,
+		tyresNotChanged: false,
+		gridPosition: 5,
+		gridDelta: -1,
+		retired: false,
+		stopped: true,
+		inPit: false,
+		pitOut: false,
+		outlap: false,
+		stints: [
+			stint(0, 'SOFT', 18, 0),
+			stint(1, 'INTERMEDIATE', 12, 0, { lapTime: '1:39.880', lapNumber: 38 })
+		],
+		knockedOut: false,
+		cutoff: false,
+		timeDiffToFastest: '',
+		timeDiffToPositionAhead: ''
+	},
+	{
+		position: '7',
+		racingNumber: '4',
+		tla: 'NOR',
+		driverName: 'Lando NORRIS',
+		broadcastName: 'L NORRIS',
+		team: 'McLaren',
+		teamColour: 'FF8000',
+		gapToLeader: '+1 LAP',
+		intervalToAhead: '',
+		catchingAhead: false,
+		lastLap: '',
+		lastLapPersonalBest: false,
+		lastLapOverallBest: false,
+		bestLap: '1:40.115',
+		bestLapLap: 31,
+		bestLapRank: 8,
+		sectors: [
+			sector(0, '', '25.711', [0, 0, 0, 0, 0], { stopped: true }),
+			sector(1, '', '34.210', [0, 0, 0, 0, 0, 0], { stopped: true }),
+			sector(2, '', '40.910', [0, 0, 0, 0, 0, 0, 0, 0, 0], { stopped: true })
+		],
+		lastLapSectors: [
+			lastLapSector(0, '25.711'),
+			lastLapSector(1, '34.210'),
+			lastLapSector(2, '40.910')
+		],
+		bestSectors: [bestSector(0, '25.611', 11), bestSector(1, '34.017', 10), bestSector(2, '40.487', 6)],
+		laps: 40,
+		pitStops: 2,
+		compound: 'WET',
+		tyreLaps: 6,
+		stintLaps: 6,
+		isNewTyre: false,
+		tyresNotChanged: false,
+		gridPosition: 6,
+		gridDelta: -1,
+		retired: true,
+		stopped: false,
+		inPit: false,
+		pitOut: false,
+		outlap: false,
+		stints: [
+			stint(0, 'MEDIUM', 24, 0),
+			stint(1, 'WET', 6, 0, { lapTime: '1:40.115', lapNumber: 31 })
+		],
+		knockedOut: false,
+		cutoff: false,
+		timeDiffToFastest: '',
+		timeDiffToPositionAhead: ''
+	},
+	{
+		position: '8',
+		racingNumber: '14',
+		tla: 'ALO',
+		driverName: 'Fernando ALONSO',
+		broadcastName: 'F ALONSO',
+		team: 'Aston Martin',
+		teamColour: '229971',
+		gapToLeader: '+1 LAP',
+		intervalToAhead: '+3.100',
+		catchingAhead: true,
+		lastLap: '1:40.901',
+		lastLapPersonalBest: false,
+		lastLapOverallBest: false,
+		bestLap: '',
+		bestLapLap: null,
+		bestLapRank: null,
+		sectors: [
+			sector(0, '25.900', '25.920', [2048, 2048, 2048, 2048, 2048]),
+			sector(1, '34.200', '34.280', [2048, 2048, 2050, 2050, 2048, 2048]),
+			sector(2, '40.801', '40.880', [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048])
+		],
+		lastLapSectors: [
+			lastLapSector(0, '25.920'),
+			lastLapSector(1, '34.280'),
+			lastLapSector(2, '40.880')
+		],
+		bestSectors: [bestSector(0, '', null), bestSector(1, '', null), bestSector(2, '', null)],
+		laps: 18,
+		pitStops: 1,
+		compound: 'UNKNOWN',
+		tyreLaps: 0,
+		stintLaps: 0,
+		isNewTyre: false,
+		tyresNotChanged: true,
+		gridPosition: null,
+		gridDelta: null,
+		retired: false,
+		stopped: false,
+		inPit: true,
+		pitOut: false,
+		outlap: false,
+		stints: [stint(0, 'UNKNOWN', 0, 0, { tyresNotChanged: true })],
 		knockedOut: false,
 		cutoff: false,
 		timeDiffToFastest: '',
@@ -276,6 +556,11 @@ export const mockQualifyingDriverRows: DriverRow[] = [
 			sector(1, '41.826', '41.826', [2048, 2048, 2048, 2048, 2048, 2048]),
 			sector(2, '59.283', '59.283', [2048, 2048, 2048, 2048, 2048, 2048, 2064, 2064, 2064])
 		],
+		lastLapSectors: [
+			lastLapSector(0, '33.878'),
+			lastLapSector(1, '41.826'),
+			lastLapSector(2, '59.283')
+		],
 		bestSectors: [bestSector(0, '24.504', 1), bestSector(1, '31.456', 4), bestSector(2, '39.016', 1)],
 		laps: 12,
 		pitStops: 4,
@@ -323,6 +608,11 @@ export const mockQualifyingDriverRows: DriverRow[] = [
 			sector(0, '30.044', '30.044', [2048, 2048, 2048, 2048, 2048]),
 			sector(1, '41.905', '41.905', [2048, 2048, 2048, 2048, 2048, 2048]),
 			sector(2, '62.745', '62.745', [2048, 2048, 2048, 2048, 2048, 2048, 2064, 2064, 2064])
+		],
+		lastLapSectors: [
+			lastLapSector(0, '30.044'),
+			lastLapSector(1, '41.905'),
+			lastLapSector(2, '62.745')
 		],
 		bestSectors: [bestSector(0, '24.747', 2), bestSector(1, '31.201', 1), bestSector(2, '39.454', 9)],
 		laps: 15,
@@ -372,6 +662,11 @@ export const mockQualifyingDriverRows: DriverRow[] = [
 			sector(0, '30.242', '30.242', [2048, 2048, 2048, 2048, 2048]),
 			sector(1, '41.185', '41.185', [2048, 2048, 2048, 2048, 2048, 2048]),
 			sector(2, '67.836', '67.836', [2048, 2048, 2048, 2048, 2048, 2048, 2064, 2064, 2064])
+		],
+		lastLapSectors: [
+			lastLapSector(0, '30.242'),
+			lastLapSector(1, '41.185'),
+			lastLapSector(2, '67.836')
 		],
 		bestSectors: [bestSector(0, '24.839', 5), bestSector(1, '31.459', 6), bestSector(2, '39.231', 3)],
 		laps: 12,

@@ -23,6 +23,13 @@ export interface Sector {
   segments: MiniSector[];
 }
 
+export interface LastLapSector {
+  index: number;
+  value: string;
+  personalFastest: boolean;
+  overallFastest: boolean;
+}
+
 export interface Stint {
   index: number;
   compound: Compound;
@@ -89,6 +96,7 @@ export interface DriverRow {
   bestLapRank: number | null;
 
   sectors: Sector[];
+  lastLapSectors: LastLapSector[];
   bestSectors: BestSector[];
 
   laps: number;
