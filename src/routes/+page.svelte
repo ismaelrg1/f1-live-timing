@@ -2,15 +2,15 @@
   import DriverTable from '../lib/components/driver-table/DriverTable.svelte';
 
   import { mockDriverRows } from '../lib/data/mockDashboard';
-  import { driverColumns } from '../lib/types/columns';
+  import { visibleColumns } from '../lib/stores/columnsStore';
 </script>
 
 <section class="min-h-screen bg-zinc-950 p-6 text-zinc-100">
-  <h1 class="mb-4 text-xl font-bold">Prueba DriverTable</h1>
+  <h1 class="mb-4 text-xl font-bold">Prueba DriverTable modular</h1>
 
   <DriverTable
     drivers={mockDriverRows}
-    columns={driverColumns}
+    columns={$visibleColumns}
   />
 </section>
 
