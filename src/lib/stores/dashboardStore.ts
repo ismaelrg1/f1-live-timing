@@ -90,8 +90,11 @@ function createDashboardDataStore() {
   const { subscribe, update, set } = writable<DashboardDataState>(initialState);
 
   let socket: WebSocket | null = null;
+  let connectionId = 0;
 
   function disconnectReplayWebSocket() {
+    connectionId += 1;
+
     if (socket) {
       socket.close();
       socket = null;
@@ -134,6 +137,7 @@ function createDashboardDataStore() {
 
   function connectReplayWebSocket(url = 'ws://127.0.0.1:8765') {
     disconnectReplayWebSocket();
+    const currentConnectionId = connectionId;
 
     update((state) => ({
       ...state,
@@ -153,6 +157,8 @@ function createDashboardDataStore() {
     socket = new WebSocket(url);
 
     socket.addEventListener('open', () => {
+      if (currentConnectionId !== connectionId) return;
+
       update((state) => ({
         ...state,
         connected: true,
@@ -162,6 +168,8 @@ function createDashboardDataStore() {
     });
 
     socket.addEventListener('message', (event) => {
+      if (currentConnectionId !== connectionId) return;
+
       const message = JSON.parse(event.data) as ReplayMessage;
 
       if (message.type === 'replay_started') {
@@ -214,6 +222,11 @@ function createDashboardDataStore() {
     });
 
     socket.addEventListener('close', () => {
+      if (currentConnectionId !== connectionId) return;
+
+      teamRadioStore.reset();
+      raceControlStore.reset();
+
       update((state) => ({
         ...state,
         connected: false,
@@ -225,6 +238,11 @@ function createDashboardDataStore() {
     });
 
     socket.addEventListener('error', () => {
+      if (currentConnectionId !== connectionId) return;
+
+      teamRadioStore.reset();
+      raceControlStore.reset();
+
       update((state) => ({
         ...state,
         connected: false,

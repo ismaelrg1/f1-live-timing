@@ -1,28 +1,27 @@
 <script lang="ts">
   import type { RaceControlMessage } from '../../types/raceControl';
+  import {
+    raceControlAccentClass,
+    raceControlBadgeClass,
+    raceControlKind,
+    raceControlLabel,
+    type RaceControlFilterId
+  } from './raceControlFilters';
 
   interface Props {
     message: RaceControlMessage;
+    kind?: RaceControlFilterId;
   }
 
-  let { message }: Props = $props();
-
-  function categoryClass(category: string, flag: string) {
-    const value = `${category} ${flag}`.toLowerCase();
-
-    if (value.includes('red')) return 'border-red-400/40 bg-red-500/15 text-red-300';
-    if (value.includes('yellow')) return 'border-yellow-300/40 bg-yellow-400/15 text-yellow-200';
-    if (value.includes('green')) return 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300';
-    if (value.includes('clear')) return 'border-sky-400/40 bg-sky-500/15 text-sky-300';
-    if (value.includes('chequered')) return 'border-zinc-200/40 bg-zinc-100/15 text-zinc-100';
-
-    return 'border-zinc-500/40 bg-zinc-700/30 text-zinc-300';
-  }
+  let { message, kind = raceControlKind(message) }: Props = $props();
 
   function formatTime(value: string) {
     if (!value) return '-';
 
-    const date = new Date(value);
+    const normalizedValue = value.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(value)
+      ? value
+      : `${value}Z`;
+    const date = new Date(normalizedValue);
     if (Number.isNaN(date.getTime())) return value;
 
     return date.toLocaleTimeString([], {
@@ -32,10 +31,15 @@
     });
   }
 
-  let badgeText = $derived(message.flag || message.category || 'INFO');
+  let badgeText = $derived(raceControlLabel(message, kind));
 </script>
 
-<div class="grid grid-cols-[4rem_3rem_7.5rem_minmax(0,1fr)] items-center gap-3 border-b border-zinc-800/80 px-3 py-2.5 transition hover:bg-zinc-900/70 last:border-b-0">
+<div
+  class={[
+    'grid grid-cols-[4rem_3rem_7.5rem_minmax(0,1fr)] items-center gap-3 border-b border-l-2 border-b-zinc-800/80 px-3 py-2.5 transition hover:bg-zinc-900/70 last:border-b-0',
+    raceControlAccentClass(kind)
+  ]}
+>
   <span class="text-[10px] font-bold tabular-nums leading-tight text-zinc-500">
     {formatTime(message.utc)}
   </span>
@@ -47,7 +51,7 @@
   <span
     class={[
       'inline-flex w-fit min-w-16 justify-center rounded border px-2 py-1 text-[10px] font-black uppercase',
-      categoryClass(message.category, message.flag)
+      raceControlBadgeClass(kind)
     ]}
   >
     {badgeText}
