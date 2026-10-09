@@ -32,7 +32,12 @@
   <TyreBadge {driver} />
 
 {:else if column.id === 'bestLap'}
-  <span class="font-semibold tabular-nums text-zinc-100">
+  <span
+    class={[
+      'font-semibold tabular-nums',
+      driver.bestLapRank === 1 ? 'text-purple-400' : 'text-zinc-100'
+    ]}
+  >
     {driver.bestLap || '-'}
   </span>
 

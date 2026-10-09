@@ -8,19 +8,25 @@
   let { driver }: Props = $props();
 
   function miniSectorClass(status: MiniSectorStatus) {
+    if (status === 0) return 'bg-zinc-700';
     if (status === 2051) return 'bg-purple-500';
     if (status === 2049) return 'bg-emerald-400';
     if (status === 2050) return 'bg-yellow-400';
     if (status === 2052) return 'bg-orange-400';
-    if (status === 2048) return 'bg-zinc-600';
+    if (status === 2048) return 'bg-yellow-400';
     if (status === 2064) return 'bg-zinc-700';
-    return 'bg-zinc-800';
+    return 'bg-zinc-700';
   }
 
   function sectorTextClass(personalFastest: boolean, overallFastest: boolean) {
     if (overallFastest) return 'text-purple-400';
     if (personalFastest) return 'text-emerald-400';
     return 'text-zinc-300';
+  }
+
+  function bestSectorTextClass(position: number | null) {
+    if (position === 1) return 'text-purple-400';
+    return 'text-zinc-500';
   }
 </script>
 
@@ -44,7 +50,7 @@
           {sector.value || '-'}
         </span>
 
-        <span class="text-zinc-500">
+        <span class={bestSectorTextClass(driver.bestSectors[sector.index]?.position ?? null)}>
           {driver.bestSectors[sector.index]?.value || '-'}
         </span>
       </div>

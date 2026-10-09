@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { flip } from 'svelte/animate';
+  import { cubicOut } from 'svelte/easing';
+
   import { columnState } from '../../stores/columnsStore';
   import type { ColumnDefinition } from '../../types/columns';
   import type { DashboardSessionState, DriverRow } from '../../types/dashboard';
@@ -13,6 +16,19 @@
     drivers: DriverRow[];
     columns: ColumnDefinition[];
   }
+
+  type TableRow =
+    | {
+        id: string;
+        type: 'elimination';
+      }
+    | {
+        id: string;
+        type: 'driver';
+        driver: DriverRow;
+        isDimmed: boolean;
+        isCutoffWarning: boolean;
+      };
 
   let { session, drivers, columns }: Props = $props();
 
@@ -88,6 +104,28 @@
     return isQualifyingSession && session.clockRunning && driver.cutoff;
   }
 
+  let tableRows = $derived.by<TableRow[]>(() => {
+    const rows: TableRow[] = [];
+
+    for (const driver of drivers) {
+      if (shouldShowEliminationLine(driver)) {
+        rows.push({
+          id: `elimination-${driver.position}`,
+          type: 'elimination'
+        });
+      }
+
+      rows.push({
+        id: `driver-${driver.racingNumber}`,
+        type: 'driver',
+        driver,
+        isDimmed: isDriverDimmed(driver),
+        isCutoffWarning: isCutoffWarning(driver)
+      });
+    }
+
+    return rows;
+  });
 </script>
 
 <section class={["relative w-full rounded border border-zinc-800 bg-zinc-900", trackAlertClass]}>
@@ -105,24 +143,29 @@
       />
 
       <tbody>
-        {#each drivers as driver (driver.racingNumber)}
-          {#if shouldShowEliminationLine(driver)}
-            <tr>
+        {#each tableRows as row (row.id)}
+          <tr
+            animate:flip={{ duration: 550, easing: cubicOut }}
+            class={[
+              row.type === 'driver' && 'border-t border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800/60',
+              row.type === 'driver' && row.isDimmed && 'opacity-45 grayscale',
+              row.type === 'driver' && row.isCutoffWarning && 'bg-yellow-400/10 shadow-[inset_3px_0_0_rgb(250_204_21)]'
+            ]}
+          >
+            {#if row.type === 'elimination'}
               <td
                 colspan={displayedColumns.length}
                 class="border-y border-red-500/40 bg-red-500/10 px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-[0.2em] text-red-300"
               >
                 Elimination zone
               </td>
-            </tr>
-          {/if}
-
-          <DriverTableRow
-            {driver}
-            columns={displayedColumns}
-            isDimmed={isDriverDimmed(driver)}
-            isCutoffWarning={isCutoffWarning(driver)}
-          />
+            {:else}
+              <DriverTableRow
+                driver={row.driver}
+                columns={displayedColumns}
+              />
+            {/if}
+          </tr>
         {/each}
       </tbody>
     </table>

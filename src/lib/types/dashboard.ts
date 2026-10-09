@@ -69,6 +69,7 @@ export interface DashboardSessionState {
   qualifyingPart: number | null;
   qualifyingPartLabel: 'Q1' | 'Q2' | 'Q3' | null;
   eliminationZoneStartsAt: number | null;
+  miniSectorLayout?: number[] | null;
 
   trackStatusCode: TrackStatusCode;
   trackStatusMessage: string;

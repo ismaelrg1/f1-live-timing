@@ -36,7 +36,7 @@
 </script>
 
 <div
-  class="inline-flex items-center gap-1"
+  class="inline-grid w-16 grid-cols-[1.25rem_2.25rem] items-center justify-start gap-1"
   title={`${compoundName}, ${driver.tyreLaps} total laps, ${driver.stintLaps} in this stint${driver.isNewTyre ? ', new tyre' : ', used tyre'}`}
 >
   <span
@@ -56,7 +56,7 @@
     {/if}
   </span>
 
-  <span class="text-[11px] font-semibold tabular-nums text-zinc-300">
+  <span class="text-right text-[11px] font-semibold tabular-nums text-zinc-300">
     {driver.tyreLaps}
   </span>
 </div>

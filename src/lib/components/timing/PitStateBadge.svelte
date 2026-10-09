@@ -8,7 +8,7 @@
   let { driver }: Props = $props();
 
   let label = $derived.by(() => {
-    if (driver.retired) return 'RET';
+    if (driver.retired) return 'DNF';
     if (driver.stopped) return 'STOP';
     if (driver.inPit) return 'IN';
     if (driver.pitOut) return 'OUT';
