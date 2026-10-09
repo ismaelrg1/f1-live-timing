@@ -43,6 +43,15 @@ const mockPracticeSessionState: DashboardSessionState = {
 	cutOffPercentage: ''
 };
 
+const trackStatusSession = (
+	trackStatusCode: string,
+	trackStatusMessage: string
+): DashboardSessionState => ({
+	...mockRaceSessionState,
+	trackStatusCode,
+	trackStatusMessage
+});
+
 export const mockScenarios: MockScenario[] = [
 	{
 		id: 'race',
@@ -50,6 +59,41 @@ export const mockScenarios: MockScenario[] = [
 		description: 'Carrera con vueltas, gaps, stints y estados de pit.',
 		session: mockSessionState,
 		drivers: mockDriverRows
+	},
+	{
+		id: 'race-yellow',
+		label: 'Race yellow',
+		description: 'Carrera con bandera amarilla y pulso amarillo en la tabla.',
+		session: trackStatusSession('2', 'YELLOW'),
+		drivers: mockRaceDriverRows
+	},
+	{
+		id: 'race-sc',
+		label: 'Race SC',
+		description: 'Carrera con Safety Car y alerta amarilla en la tabla.',
+		session: trackStatusSession('4', 'SAFETY CAR'),
+		drivers: mockRaceDriverRows
+	},
+	{
+		id: 'race-red',
+		label: 'Race red',
+		description: 'Carrera con bandera roja y pulso rojo en la tabla.',
+		session: trackStatusSession('5', 'RED FLAG'),
+		drivers: mockRaceDriverRows
+	},
+	{
+		id: 'race-vsc',
+		label: 'Race VSC',
+		description: 'Carrera con Virtual Safety Car y alerta amarilla en la tabla.',
+		session: trackStatusSession('6', 'VIRTUAL SAFETY CAR'),
+		drivers: mockRaceDriverRows
+	},
+	{
+		id: 'race-vsc-ending',
+		label: 'Race VSC ending',
+		description: 'Carrera con VSC ending y alerta amarilla en la tabla.',
+		session: trackStatusSession('7', 'VSC ENDING'),
+		drivers: mockRaceDriverRows
 	},
 	{
 		id: 'practice',
