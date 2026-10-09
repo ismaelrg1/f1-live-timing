@@ -1,6 +1,11 @@
 import { writable } from 'svelte/store';
 import type { DashboardSessionState, DriverRow } from '../types/dashboard';
 
+import { teamRadioStore } from './teamRadioStore';
+import { raceControlStore } from './raceControlStore';
+import type { TeamRadioCapture } from '../types/teamRadio';
+import type { RaceControlMessage } from '../types/raceControl';
+
 export type DashboardDataMode = 'mock' | 'replay';
 
 export interface ReplayMarker {
@@ -41,6 +46,10 @@ interface DashboardStateMessage {
   payload: {
     session: DashboardSessionState;
     drivers: DriverRow[];
+    secondaryPanels?: {
+        teamRadio?: TeamRadioCapture[];
+        raceControlMessages?: RaceControlMessage[];
+    };
   };
 }
 
@@ -88,6 +97,9 @@ function createDashboardDataStore() {
       socket = null;
     }
 
+    teamRadioStore.reset();
+    raceControlStore.reset();
+
     update((state) => ({
       ...state,
       connected: false,
@@ -115,6 +127,9 @@ function createDashboardDataStore() {
       replayTotalEvents: 0,
       replayMarkers: []
     });
+
+    teamRadioStore.reset();
+    raceControlStore.reset();
   }
 
   function connectReplayWebSocket(url = 'ws://127.0.0.1:8765') {
@@ -150,6 +165,9 @@ function createDashboardDataStore() {
       const message = JSON.parse(event.data) as ReplayMessage;
 
       if (message.type === 'replay_started') {
+        teamRadioStore.reset();
+        raceControlStore.reset();
+
         update((state) => ({
           ...state,
           replayTotalEvents: message.totalEvents,
@@ -176,6 +194,9 @@ function createDashboardDataStore() {
 
         return;
       }
+
+      teamRadioStore.setCaptures(message.payload.secondaryPanels?.teamRadio ?? []);
+      raceControlStore.setMessages(message.payload.secondaryPanels?.raceControlMessages ?? []);
 
       update((state) => ({
         ...state,

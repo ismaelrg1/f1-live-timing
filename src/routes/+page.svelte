@@ -7,6 +7,11 @@
   import { dashboardData, type DashboardDataMode } from '../lib/stores/dashboardStore';
   import { visibleColumns } from '../lib/stores/columnsStore';
 
+  import DashboardSecondaryPanels from '../lib/components/dashboard/DashboardSecondaryPanels.svelte';
+  import { raceControlStore } from '../lib/stores/raceControlStore';
+  import { teamRadioStore } from '../lib/stores/teamRadioStore';
+
+
   let activeScenarioId = $state(defaultMockScenario.id);
   let replayUrl = $state('ws://127.0.0.1:8765');
 
@@ -231,5 +236,10 @@
     session={activeSession}
     drivers={activeDrivers}
     columns={$visibleColumns}
+  />
+
+  <DashboardSecondaryPanels
+    teamRadio={$teamRadioStore}
+    raceControlMessages={$raceControlStore}
   />
 </section>
