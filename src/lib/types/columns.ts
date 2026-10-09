@@ -118,6 +118,14 @@ export const driverColumns: ColumnDefinition[] = [
     width: '170px'
   },
   {
+    id: 'stints',
+    label: 'STINTS',
+    group: 'strategy',
+    visibleByDefault: false,
+    align: 'center',
+    width: '420px'
+  },
+  {
     id: 'laps',
     label: 'LAPS',
     group: 'timing',

@@ -6,6 +6,7 @@
   import LastSectorsCell from '../timing/LastSectorsCell.svelte';
   import PitStateBadge from '../timing/PitStateBadge.svelte';
   import SectorBoard from '../timing/SectorBoard.svelte';
+  import StintTimeline from '../timing/StintTimeline.svelte';
   import TyreBadge from '../timing/TyreBadge.svelte';
 
   interface Props {
@@ -66,6 +67,9 @@
 
 {:else if column.id === 'lastSectors'}
   <LastSectorsCell {driver} />
+
+{:else if column.id === 'stints'}
+  <StintTimeline {driver} />
 
 {:else if column.id === 'laps'}
   <span class="font-semibold tabular-nums text-zinc-100">
