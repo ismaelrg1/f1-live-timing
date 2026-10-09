@@ -60,7 +60,7 @@
   {#each columns as column}
     <td
       class={[
-        'border-r border-zinc-800 px-3 py-2 text-sm last:border-r-0',
+        'border-r border-zinc-800 px-2 py-0.5 text-xs last:border-r-0',
         alignClass(column.align)
       ]}
       style={column.width ? `width: ${column.width}` : undefined}

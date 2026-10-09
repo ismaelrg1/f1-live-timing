@@ -21,7 +21,7 @@
   }
 </script>
 
-<div class="grid min-w-44 grid-cols-3 gap-2 text-center text-xs font-bold tabular-nums">
+<div class="grid min-w-40 grid-cols-3 gap-2 text-center text-[11px] font-bold tabular-nums">
   {#each sectorValues as sector}
     <span
       class={sectorClass(sector.personalFastest, sector.overallFastest)}

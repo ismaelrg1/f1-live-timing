@@ -33,11 +33,11 @@
 
 <span
   class={[
-    'inline-flex h-8 items-center rounded px-3 text-[11px] font-black uppercase tracking-wide ring-1',
+    'inline-flex h-6 items-center rounded px-2 text-[10px] font-black uppercase tracking-wide ring-1',
     colorClass
   ]}
   title={message}
 >
-  <Flag size={13} strokeWidth={2.6} class="mr-1.5" />
+  <Flag size={11} strokeWidth={2.6} class="mr-1" />
   {label}
 </span>

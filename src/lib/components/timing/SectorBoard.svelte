@@ -24,7 +24,7 @@
   }
 </script>
 
-<div class="grid min-w-[260px] grid-cols-3 gap-3">
+<div class="grid min-w-[250px] grid-cols-3 gap-2.5">
   {#each driver.sectors as sector}
     <div class="min-w-0">
       <div class="flex min-h-2 items-center gap-0.5">
@@ -39,7 +39,7 @@
         {/each}
       </div>
 
-      <div class="mt-1.5 flex items-center justify-between gap-2 text-[11px] font-bold tabular-nums">
+      <div class="mt-0.5 flex items-center justify-between gap-2 text-[10px] font-bold tabular-nums">
         <span class={sectorTextClass(sector.personalFastest, sector.overallFastest)}>
           {sector.value || '-'}
         </span>

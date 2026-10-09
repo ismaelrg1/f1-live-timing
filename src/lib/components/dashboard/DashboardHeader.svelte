@@ -55,24 +55,24 @@
 </script>
 
 <header
-  class="mb-4 overflow-hidden rounded border border-zinc-800 bg-[#070d1a] shadow-lg shadow-black/20"
+  class="mb-1.5 rounded border border-zinc-800 bg-[#070d1a] shadow-lg shadow-black/20"
 >
-  <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-3">
-    <div class="flex min-w-0 flex-wrap items-center gap-3">
+  <div class="flex flex-col gap-1.5 px-3 py-1.5 xl:flex-row xl:items-center xl:justify-between">
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
-          <h1 class="truncate text-xl font-black leading-tight text-zinc-100">
+          <h1 class="truncate text-base font-black leading-tight text-zinc-100">
             {session.meetingName}
           </h1>
 
           <span class="hidden text-lg leading-none text-zinc-500 sm:inline">·</span>
 
-          <span class="hidden text-sm font-black uppercase tracking-wide text-zinc-200 sm:inline">
+          <span class="hidden text-xs font-black uppercase tracking-wide text-zinc-200 sm:inline">
             {sessionTypeLabel}
           </span>
         </div>
 
-        <div class="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-zinc-500">
+        <div class="flex items-center gap-2 text-[9px] font-black uppercase tracking-wider text-zinc-500">
           <span>{sessionTypeLabel}</span>
           <span class="h-1 w-1 rounded-full bg-zinc-700"></span>
           <MapPin size={11} strokeWidth={2.4} />
@@ -80,15 +80,15 @@
         </div>
       </div>
 
-      <div class="hidden h-8 w-px bg-zinc-800 lg:block"></div>
+      <div class="hidden h-7 w-px bg-zinc-800 lg:block"></div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <div class="inline-flex h-8 items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 text-[11px] font-black text-red-300">
+        <div class="inline-flex h-6 items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2 text-[10px] font-black text-red-300">
           <Clock size={13} strokeWidth={2.4} />
           <span>{session.clockRemaining || '-'}</span>
         </div>
 
-        <div class="inline-flex h-8 items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-3 text-[11px] font-black text-zinc-400">
+        <div class="inline-flex h-6 items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900 px-2 text-[10px] font-black text-zinc-400">
           <Activity
             size={13}
             strokeWidth={2.4}
@@ -104,27 +104,27 @@
       </div>
     </div>
 
-    <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3">
+    <div class="flex w-full min-w-0 flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
       {#if isRaceSession}
-        <div class="min-w-20 rounded border border-zinc-800 bg-zinc-950/70 px-3 py-2">
+        <div class="min-w-20 rounded border border-zinc-800 bg-zinc-950/70 px-2 py-1">
           <div class="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-500">
             <Timer size={11} strokeWidth={2.4} />
             <span>Laps</span>
           </div>
           <div class="mt-0.5 flex items-baseline gap-1">
-            <strong class="text-lg font-black tabular-nums text-zinc-100">{lapMainLabel}</strong>
+            <strong class="text-base font-black tabular-nums text-zinc-100">{lapMainLabel}</strong>
             <span class="text-[9px] font-black uppercase text-zinc-500">{lapSubLabel}</span>
           </div>
         </div>
       {/if}
 
-      <div class="grid flex-1 grid-cols-2 gap-2 rounded border border-zinc-800 bg-zinc-950/70 px-3 py-2 sm:flex sm:flex-none sm:items-center sm:gap-4">
+      <div class="grid w-full min-w-0 grid-cols-3 gap-2 rounded border border-zinc-800 bg-zinc-950/70 px-2 py-1 sm:grid-cols-6 xl:w-auto xl:flex xl:items-center xl:gap-3">
         <div>
           <div class="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-sky-400">
             <Thermometer size={11} strokeWidth={2.4} />
             <span>Air</span>
           </div>
-          <strong class="text-sm font-black tabular-nums text-zinc-100">{session.weather.airTemp}°</strong>
+          <strong class="text-xs font-black tabular-nums text-zinc-100">{session.weather.airTemp}°</strong>
         </div>
 
         <div>
@@ -132,7 +132,7 @@
             <Thermometer size={11} strokeWidth={2.4} />
             <span>Track</span>
           </div>
-          <strong class="text-sm font-black tabular-nums text-zinc-100">{session.weather.trackTemp}°</strong>
+          <strong class="text-xs font-black tabular-nums text-zinc-100">{session.weather.trackTemp}°</strong>
         </div>
 
         <div>
@@ -140,7 +140,7 @@
             <Droplets size={11} strokeWidth={2.4} />
             <span>Hum</span>
           </div>
-          <strong class="text-sm font-black tabular-nums text-zinc-100">{session.weather.humidity}%</strong>
+          <strong class="text-xs font-black tabular-nums text-zinc-100">{session.weather.humidity}%</strong>
         </div>
 
         <div>
@@ -148,7 +148,7 @@
             <Wind size={11} strokeWidth={2.4} />
             <span>Wind</span>
           </div>
-          <strong class="text-sm font-black tabular-nums text-zinc-100">{session.weather.windSpeed}</strong>
+          <strong class="text-xs font-black tabular-nums text-zinc-100">{session.weather.windSpeed}</strong>
           <span class="ml-0.5 text-[10px] font-bold text-zinc-500">m/s</span>
         </div>
 
@@ -157,7 +157,7 @@
             <Gauge size={11} strokeWidth={2.4} />
             <span>Press</span>
           </div>
-          <strong class="text-sm font-black tabular-nums text-zinc-100">{session.weather.pressure}</strong>
+          <strong class="text-xs font-black tabular-nums text-zinc-100">{session.weather.pressure}</strong>
         </div>
 
         <div>
@@ -165,7 +165,7 @@
             <CloudRain size={11} strokeWidth={2.4} />
             <span>Rain</span>
           </div>
-          <strong class="text-sm font-black tabular-nums text-zinc-100">{rainfallLabel}</strong>
+          <strong class="text-xs font-black tabular-nums text-zinc-100">{rainfallLabel}</strong>
         </div>
       </div>
     </div>

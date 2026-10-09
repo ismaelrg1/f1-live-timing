@@ -11,7 +11,7 @@
   import { visibleColumns } from '../lib/stores/columnsStore';
 </script>
 
-<section class="min-h-screen bg-zinc-950 p-6 text-zinc-100">
+<section class="min-h-screen bg-zinc-950 p-2 text-zinc-100 sm:p-3">
 
   <DashboardHeader session={mockSessionState} />
 

@@ -36,12 +36,12 @@
 </script>
 
 <div
-  class="inline-flex items-center gap-1.5"
+  class="inline-flex items-center gap-1"
   title={`${compoundName}, ${driver.tyreLaps} total laps, ${driver.stintLaps} in this stint${driver.isNewTyre ? ', new tyre' : ', used tyre'}`}
 >
   <span
     class={[
-      'relative inline-flex size-6 items-center justify-center rounded-full text-[11px] font-black leading-none ring-2',
+      'relative inline-flex size-5 items-center justify-center rounded-full text-[10px] font-black leading-none ring-2',
       tyreColor,
       driver.isNewTyre && 'shadow-[0_0_0_2px_rgba(255,255,255,0.28)]'
     ]}
@@ -50,13 +50,13 @@
 
     {#if driver.isNewTyre}
       <span
-        class="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-white ring-2 ring-zinc-900"
+        class="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-white ring-2 ring-zinc-900"
         title="New tyre"
       ></span>
     {/if}
   </span>
 
-  <span class="text-xs font-semibold tabular-nums text-zinc-300">
+  <span class="text-[11px] font-semibold tabular-nums text-zinc-300">
     {driver.tyreLaps}
   </span>
 </div>

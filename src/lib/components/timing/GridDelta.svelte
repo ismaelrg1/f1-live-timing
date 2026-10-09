@@ -29,16 +29,16 @@
 
 <span
   class={[
-    'inline-flex min-w-8 items-center justify-start gap-1 text-xs font-black tabular-nums leading-none',
+    'inline-flex min-w-7 items-center justify-start gap-0.5 text-[11px] font-black tabular-nums leading-none',
     direction === 'up' && 'text-emerald-400',
     direction === 'down' && 'text-red-400',
     (direction === 'same' || direction === 'unknown') && 'text-zinc-500'
   ]}
   title="Grid position change"
 >
-  <span class="text-sm leading-none">{symbol}</span>
+  <span class="text-xs leading-none">{symbol}</span>
 
   {#if displayValue}
-    <strong class="text-xs leading-none">{displayValue}</strong>
+    <strong class="text-[11px] leading-none">{displayValue}</strong>
   {/if}
 </span>

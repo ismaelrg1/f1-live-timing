@@ -35,7 +35,7 @@
 {#if label}
   <span
     class={[
-      'inline-flex min-w-10 items-center justify-center rounded px-1.5 py-0.5 text-[11px] font-black tracking-wide ring-1',
+      'inline-flex min-w-9 items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-black tracking-wide ring-1',
       colorClass
     ]}
     {title}

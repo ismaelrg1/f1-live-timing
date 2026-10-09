@@ -155,7 +155,7 @@
       <th
         data-driver-column-id={column.id}
         class={[
-          'touch-none select-none border-r border-zinc-800 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-zinc-500 last:border-r-0',
+          'touch-none select-none border-r border-zinc-800 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-zinc-500 last:border-r-0',
           'cursor-grab active:cursor-grabbing',
           alignClass(column.align),
           draggedColumnId === column.id && dragStarted && 'opacity-30',
