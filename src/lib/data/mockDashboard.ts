@@ -63,6 +63,75 @@ const stint = (
 	lapFlags: options.lapFlags
 });
 
+const qualifyingDriver = (
+	position: number,
+	racingNumber: string,
+	tla: string,
+	driverName: string,
+	team: string,
+	teamColour: string,
+	bestLap: string,
+	diffToFastest: string,
+	diffToAhead: string,
+	options: {
+		knockedOut?: boolean;
+		cutoff?: boolean;
+		compound?: Compound;
+		tyreLaps?: number;
+		lastLap?: string;
+	} = {}
+): DriverRow => ({
+	position: String(position),
+	racingNumber,
+	tla,
+	driverName,
+	broadcastName: driverName
+		.split(' ')
+		.map((part, index, parts) => (index === 0 ? part[0] : parts[index]))
+		.join(' '),
+	team,
+	teamColour,
+	gapToLeader: '',
+	intervalToAhead: '',
+	catchingAhead: false,
+	lastLap: options.lastLap ?? bestLap,
+	lastLapPersonalBest: false,
+	lastLapOverallBest: false,
+	bestLap,
+	bestLapLap: 8 + position,
+	bestLapRank: position,
+	sectors: [
+		sector(0, '30.142', '30.142', [2048, 2048, 2048, 2048, 2048]),
+		sector(1, '41.220', '41.220', [2048, 2048, 2048, 2048, 2048, 2048]),
+		sector(2, '24.196', '24.196', [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048])
+	],
+	lastLapSectors: [
+		lastLapSector(0, '30.142'),
+		lastLapSector(1, '41.220'),
+		lastLapSector(2, '24.196')
+	],
+	bestSectors: [bestSector(0, '24.900', position), bestSector(1, '31.800', position), bestSector(2, '38.900', position)],
+	laps: 10 + (position % 5),
+	pitStops: 3,
+	compound: options.compound ?? 'SOFT',
+	tyreLaps: options.tyreLaps ?? 3,
+	stintLaps: options.tyreLaps ?? 3,
+	isNewTyre: (options.tyreLaps ?? 3) <= 3,
+	tyresNotChanged: false,
+	gridPosition: null,
+	gridDelta: null,
+	retired: false,
+	stopped: false,
+	inPit: false,
+	pitOut: false,
+	outlap: false,
+	stints: [stint(0, options.compound ?? 'SOFT', options.tyreLaps ?? 3, 0, { lapTime: bestLap, lapNumber: 8 + position })],
+	knockedOut: options.knockedOut ?? false,
+	cutoff: options.cutoff ?? false,
+	timeDiffToFastest: diffToFastest,
+	timeDiffToPositionAhead: diffToAhead
+});
+
 export const mockRaceSessionState: DashboardSessionState = {
 	sessionKey: 11731,
 	meetingKey: 1308,
@@ -84,6 +153,7 @@ export const mockRaceSessionState: DashboardSessionState = {
 	remainingLaps: 19,
 	qualifyingPart: null,
 	qualifyingPartLabel: null,
+	eliminationZoneStartsAt: null,
 	trackStatusCode: '1',
 	trackStatusMessage: 'AllClear',
 	cutOffTime: '',
@@ -538,8 +608,9 @@ export const mockQualifyingSessionState: DashboardSessionState = {
 	currentLap: null,
 	totalLaps: null,
 	remainingLaps: null,
-	qualifyingPart: 3,
-	qualifyingPartLabel: 'Q3',
+	qualifyingPart: 1,
+	qualifyingPartLabel: 'Q1',
+	eliminationZoneStartsAt: 16,
 	trackStatusCode: '1',
 	trackStatusMessage: 'AllClear',
 	cutOffTime: '1:43.230',
@@ -715,8 +786,144 @@ export const mockQualifyingDriverRows: DriverRow[] = [
 		cutoff: false,
 		timeDiffToFastest: '+0.428',
 		timeDiffToPositionAhead: '+0.130'
-	}
+	},
+	qualifyingDriver(4, '81', 'PIA', 'Oscar PIASTRI', 'McLaren', 'FF8000', '1:35.601', '+0.471', '+0.043', {
+		compound: 'SOFT',
+		tyreLaps: 4
+	}),
+	qualifyingDriver(5, '16', 'LEC', 'Charles LECLERC', 'Ferrari', 'ED1131', '1:35.744', '+0.614', '+0.143'),
+	qualifyingDriver(6, '1', 'NOR', 'Lando NORRIS', 'McLaren', 'FF8000', '1:35.801', '+0.671', '+0.057', {
+		compound: 'MEDIUM',
+		tyreLaps: 2
+	}),
+	qualifyingDriver(7, '63', 'RUS', 'George RUSSELL', 'Mercedes', '00D7B6', '1:35.920', '+0.790', '+0.119'),
+	qualifyingDriver(8, '14', 'ALO', 'Fernando ALONSO', 'Aston Martin', '229971', '1:36.011', '+0.881', '+0.091'),
+	qualifyingDriver(9, '55', 'SAI', 'Carlos SAINZ', 'Williams', '1868DB', '1:36.148', '+1.018', '+0.137'),
+	qualifyingDriver(10, '10', 'GAS', 'Pierre GASLY', 'Alpine', '00A1E8', '1:36.207', '+1.077', '+0.059'),
+	qualifyingDriver(11, '30', 'LAW', 'Liam LAWSON', 'Racing Bulls', '6C98FF', '1:36.318', '+1.188', '+0.111'),
+	qualifyingDriver(12, '5', 'BOR', 'Gabriel BORTOLETO', 'Audi', 'F50537', '1:36.427', '+1.297', '+0.109'),
+	qualifyingDriver(13, '18', 'STR', 'Lance STROLL', 'Aston Martin', '229971', '1:36.540', '+1.410', '+0.113'),
+	qualifyingDriver(14, '27', 'HUL', 'Nico HULKENBERG', 'Audi', 'F50537', '1:36.701', '+1.571', '+0.161'),
+	qualifyingDriver(15, '23', 'ALB', 'Alexander ALBON', 'Williams', '1868DB', '1:36.842', '+1.712', '+0.141', {
+		cutoff: true
+	}),
+	qualifyingDriver(16, '87', 'BEA', 'Oliver BEARMAN', 'Haas F1 Team', '9C9FA2', '1:36.901', '+1.771', '+0.059', {
+		knockedOut: true,
+		cutoff: true
+	}),
+	qualifyingDriver(17, '31', 'OCO', 'Esteban OCON', 'Haas F1 Team', '9C9FA2', '1:37.044', '+1.914', '+0.143', {
+		knockedOut: true
+	}),
+	qualifyingDriver(18, '43', 'COL', 'Franco COLAPINTO', 'Alpine', '00A1E8', '1:37.280', '+2.150', '+0.236', {
+		knockedOut: true,
+		compound: 'MEDIUM',
+		tyreLaps: 5
+	})
 ];
+
+const cloneQualifyingRows = (
+	updates: Record<
+		string,
+		Partial<Pick<DriverRow, 'knockedOut' | 'cutoff' | 'bestLap' | 'timeDiffToFastest' | 'timeDiffToPositionAhead'>>
+	>
+): DriverRow[] =>
+	mockQualifyingDriverRows.map((driver) => ({
+		...driver,
+		knockedOut: false,
+		cutoff: false,
+		...updates[driver.position]
+	}));
+
+export const mockQualifyingQ1LiveSessionState: DashboardSessionState = {
+	...mockQualifyingSessionState,
+	sessionStatus: 'Started',
+	clockRemaining: '00:03:42',
+	clockRunning: true,
+	qualifyingPart: 1,
+	qualifyingPartLabel: 'Q1',
+	eliminationZoneStartsAt: 16
+};
+
+export const mockQualifyingQ1LiveDriverRows: DriverRow[] = cloneQualifyingRows({
+	'15': { cutoff: true },
+	'16': { cutoff: true }
+});
+
+export const mockQualifyingQ1FinishedSessionState: DashboardSessionState = {
+	...mockQualifyingSessionState,
+	sessionStatus: 'Finished',
+	clockRemaining: '00:00:00',
+	clockRunning: false,
+	qualifyingPart: 1,
+	qualifyingPartLabel: 'Q1',
+	eliminationZoneStartsAt: 16
+};
+
+export const mockQualifyingQ1FinishedDriverRows: DriverRow[] = cloneQualifyingRows({
+	'16': { knockedOut: true },
+	'17': { knockedOut: true },
+	'18': { knockedOut: true }
+});
+
+export const mockQualifyingQ2LiveSessionState: DashboardSessionState = {
+	...mockQualifyingSessionState,
+	sessionStatus: 'Started',
+	clockRemaining: '00:04:18',
+	clockRunning: true,
+	qualifyingPart: 2,
+	qualifyingPartLabel: 'Q2',
+	eliminationZoneStartsAt: 11
+};
+
+export const mockQualifyingQ2LiveDriverRows: DriverRow[] = cloneQualifyingRows({
+	'10': { cutoff: true },
+	'11': { cutoff: true },
+	'16': { knockedOut: true },
+	'17': { knockedOut: true },
+	'18': { knockedOut: true }
+});
+
+export const mockQualifyingQ2FinishedSessionState: DashboardSessionState = {
+	...mockQualifyingSessionState,
+	sessionStatus: 'Finished',
+	clockRemaining: '00:00:00',
+	clockRunning: false,
+	qualifyingPart: 2,
+	qualifyingPartLabel: 'Q2',
+	eliminationZoneStartsAt: 11
+};
+
+export const mockQualifyingQ2FinishedDriverRows: DriverRow[] = cloneQualifyingRows({
+	'11': { knockedOut: true },
+	'12': { knockedOut: true },
+	'13': { knockedOut: true },
+	'14': { knockedOut: true },
+	'15': { knockedOut: true },
+	'16': { knockedOut: true },
+	'17': { knockedOut: true },
+	'18': { knockedOut: true }
+});
+
+export const mockQualifyingQ3LiveSessionState: DashboardSessionState = {
+	...mockQualifyingSessionState,
+	sessionStatus: 'Started',
+	clockRemaining: '00:05:10',
+	clockRunning: true,
+	qualifyingPart: 3,
+	qualifyingPartLabel: 'Q3',
+	eliminationZoneStartsAt: null
+};
+
+export const mockQualifyingQ3LiveDriverRows: DriverRow[] = cloneQualifyingRows({
+	'11': { knockedOut: true },
+	'12': { knockedOut: true },
+	'13': { knockedOut: true },
+	'14': { knockedOut: true },
+	'15': { knockedOut: true },
+	'16': { knockedOut: true },
+	'17': { knockedOut: true },
+	'18': { knockedOut: true }
+});
 
 export const mockSessionState = mockRaceSessionState;
 export const mockDriverRows = mockRaceDriverRows;

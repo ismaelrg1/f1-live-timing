@@ -1,0 +1,175 @@
+Guia de mocks del dashboard
+===========================
+
+Fichero donde estan definidos los mocks:
+
+  src/lib/data/mockDashboard.ts
+
+Fichero donde se elige que mock se esta viendo en pantalla:
+
+  src/routes/+page.svelte
+
+Para cambiar el caso que quieres probar, cambia el import de +page.svelte para que
+mockDriverRows y mockSessionState apunten al mock que quieras ver.
+
+
+Caso por defecto: carrera
+-------------------------
+
+Import:
+
+  import {
+    mockDriverRows,
+    mockSessionState
+  } from '../lib/data/mockDashboard';
+
+Tambien puedes usar explicitamente:
+
+  import {
+    mockRaceDriverRows as mockDriverRows,
+    mockRaceSessionState as mockSessionState
+  } from '../lib/data/mockDashboard';
+
+Que se espera ver:
+
+  - Header en modo Race.
+  - Card de vueltas visible.
+  - Tabla completa con columna LAPS.
+  - Sin zona de eliminacion.
+  - Si el TrackStatus es amarillo, VSC, SC o rojo, la tabla debe parpadear con
+    el color correspondiente.
+
+
+Caso base: qualy
+----------------
+
+Import:
+
+  import {
+    mockQualifyingDriverRows as mockDriverRows,
+    mockQualifyingSessionState as mockSessionState
+  } from '../lib/data/mockDashboard';
+
+Que se espera ver:
+
+  - Header en modo Qualifying.
+  - Debe aparecer Q1, Q2 o Q3 si qualifyingPartLabel esta definido.
+  - No debe aparecer la card de LAPS del header.
+  - La columna LAPS de la tabla no debe mostrarse.
+  - Debe aparecer la linea "Elimination zone" antes del primer piloto en zona
+    de eliminacion, si eliminationZoneStartsAt tiene valor.
+  - Los pilotos eliminados deben aparecer mas apagados.
+
+
+Q1 en directo
+-------------
+
+Import:
+
+  import {
+    mockQualifyingQ1LiveDriverRows as mockDriverRows,
+    mockQualifyingQ1LiveSessionState as mockSessionState
+  } from '../lib/data/mockDashboard';
+
+Que se espera ver:
+
+  - Header indicando Q1.
+  - No debe verse LAPS.
+  - Linea "Elimination zone" antes de P16.
+  - Pilotos en riesgo durante la sesion con borde amarillo.
+  - Pilotos todavia no apagados, porque la sesion sigue activa.
+
+
+Q1 finalizada
+-------------
+
+Import:
+
+  import {
+    mockQualifyingQ1FinishedDriverRows as mockDriverRows,
+    mockQualifyingQ1FinishedSessionState as mockSessionState
+  } from '../lib/data/mockDashboard';
+
+Que se espera ver:
+
+  - Header indicando Q1 finalizada o reloj parado.
+  - No debe verse LAPS.
+  - Linea "Elimination zone" antes de P16.
+  - P16, P17, P18... deben aparecer apagados.
+  - No debe aparecer borde amarillo de cutoff, porque la sesion ya no esta en
+    directo.
+
+
+Q2 en directo
+-------------
+
+Import:
+
+  import {
+    mockQualifyingQ2LiveDriverRows as mockDriverRows,
+    mockQualifyingQ2LiveSessionState as mockSessionState
+  } from '../lib/data/mockDashboard';
+
+Que se espera ver:
+
+  - Header indicando Q2.
+  - No debe verse LAPS.
+  - Linea "Elimination zone" antes de P11.
+  - P11 hacia abajo son la zona de eliminacion actual.
+  - Los pilotos eliminados de Q1 ya deben aparecer apagados.
+  - Los pilotos en riesgo de la sesion actual deben tener borde amarillo si la
+    sesion sigue activa.
+
+
+Q2 finalizada
+-------------
+
+Import:
+
+  import {
+    mockQualifyingQ2FinishedDriverRows as mockDriverRows,
+    mockQualifyingQ2FinishedSessionState as mockSessionState
+  } from '../lib/data/mockDashboard';
+
+Que se espera ver:
+
+  - Header indicando Q2 finalizada o reloj parado.
+  - No debe verse LAPS.
+  - Linea "Elimination zone" antes de P11.
+  - P11 hacia abajo deben aparecer apagados.
+  - No debe aparecer borde amarillo de cutoff.
+
+
+Q3 en directo
+-------------
+
+Import:
+
+  import {
+    mockQualifyingQ3LiveDriverRows as mockDriverRows,
+    mockQualifyingQ3LiveSessionState as mockSessionState
+  } from '../lib/data/mockDashboard';
+
+Que se espera ver:
+
+  - Header indicando Q3.
+  - No debe verse LAPS.
+  - No debe aparecer linea de "Elimination zone", porque en Q3 no hay corte
+    visual de eliminacion dentro de la tabla.
+  - Los pilotos eliminados en Q1/Q2 deben seguir apagados si aparecen en la
+    tabla.
+  - Los pilotos activos de Q3 deben verse normales.
+
+
+Notas importantes
+-----------------
+
+  - Race muestra LAPS; Qualy y Practice no deberian mostrar LAPS.
+  - El borde amarillo de cutoff solo debe verse cuando la sesion esta en directo.
+  - La linea de eliminacion no sale de los datos raw directamente: normalmente
+    la calcula el backend segun la parte de qualy:
+      Q1 -> empieza en posicion 16
+      Q2 -> empieza en posicion 11
+      Q3 -> null
+  - Los mocks sirven para probar la visualizacion antes de conectar el backend
+    real.

@@ -28,6 +28,10 @@
     return session.sessionName;
   });
 
+  let isRaceSession = $derived.by(() => {
+    return session.sessionType.toLowerCase().includes('race');
+  });
+
   let lapMainLabel = $derived.by(() => {
     if (session.currentLap === null) return '-';
     if (session.totalLaps === null) return String(session.currentLap);
@@ -101,16 +105,18 @@
     </div>
 
     <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3">
-      <div class="min-w-20 rounded border border-zinc-800 bg-zinc-950/70 px-3 py-2">
-        <div class="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-500">
-          <Timer size={11} strokeWidth={2.4} />
-          <span>Laps</span>
+      {#if isRaceSession}
+        <div class="min-w-20 rounded border border-zinc-800 bg-zinc-950/70 px-3 py-2">
+          <div class="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+            <Timer size={11} strokeWidth={2.4} />
+            <span>Laps</span>
+          </div>
+          <div class="mt-0.5 flex items-baseline gap-1">
+            <strong class="text-lg font-black tabular-nums text-zinc-100">{lapMainLabel}</strong>
+            <span class="text-[9px] font-black uppercase text-zinc-500">{lapSubLabel}</span>
+          </div>
         </div>
-        <div class="mt-0.5 flex items-baseline gap-1">
-          <strong class="text-lg font-black tabular-nums text-zinc-100">{lapMainLabel}</strong>
-          <span class="text-[9px] font-black uppercase text-zinc-500">{lapSubLabel}</span>
-        </div>
-      </div>
+      {/if}
 
       <div class="grid flex-1 grid-cols-2 gap-2 rounded border border-zinc-800 bg-zinc-950/70 px-3 py-2 sm:flex sm:flex-none sm:items-center sm:gap-4">
         <div>

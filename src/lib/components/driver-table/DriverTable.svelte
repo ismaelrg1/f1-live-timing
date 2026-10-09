@@ -1,7 +1,7 @@
 <script lang="ts">
   import { columnState } from '../../stores/columnsStore';
   import type { ColumnDefinition } from '../../types/columns';
-  import type { DriverRow, TrackStatusCode  } from '../../types/dashboard';
+  import type { DashboardSessionState, DriverRow } from '../../types/dashboard';
 
   import ColumnDragGhost from './ColumnDragGhost.svelte';
   import ColumnMenu from './ColumnMenu.svelte';
@@ -9,12 +9,12 @@
   import DriverTableRow from './DriverTableRow.svelte';
 
   interface Props {
+    session: DashboardSessionState;
     drivers: DriverRow[];
     columns: ColumnDefinition[];
-    trackStatusCode?: TrackStatusCode;
   }
 
-  let { drivers, columns, trackStatusCode = '1' }: Props = $props();
+  let { session, drivers, columns }: Props = $props();
 
   let previewColumns = $state<ColumnDefinition[] | null>(null);
   let dragGhost = $state<{
@@ -25,12 +25,35 @@
   } | null>(null);
 
   let trackAlertClass = $derived.by(() => {
-    if (trackStatusCode === '5') return 'track-alert-red';
-    if (['2', '4', '6', '7'].includes(trackStatusCode)) return 'track-alert-yellow';
+    if (session.trackStatusCode === '5') return 'track-alert-red';
+    if (['2', '4', '6', '7'].includes(session.trackStatusCode)) {
+      return 'track-alert-yellow';
+    }
+
     return '';
   });
 
-  let displayedColumns = $derived(previewColumns ?? columns);
+  let isRaceSession = $derived.by(() => {
+    return session.sessionType.toLowerCase().includes('race');
+  });
+
+  let sessionColumns = $derived.by(() => {
+    if (isRaceSession) return columns;
+
+    return columns.filter((column) => column.id !== 'laps');
+  });
+
+  let displayedColumns = $derived(previewColumns ?? sessionColumns);
+
+  let isQualifyingSession = $derived.by(() => {
+    const type = session.sessionType.toLowerCase();
+    return type.includes('qual');
+  });
+
+  let eliminationZoneStartsAt = $derived.by(() => {
+    if (!isQualifyingSession) return null;
+    return session.eliminationZoneStartsAt;
+  });
 
   function handlePreviewColumns(nextColumns: ColumnDefinition[]) {
     previewColumns = nextColumns;
@@ -50,6 +73,21 @@
       previewColumns = null;
     }
   }
+
+  function shouldShowEliminationLine(driver: DriverRow) {
+    if (eliminationZoneStartsAt === null) return false;
+
+    return Number(driver.position) === eliminationZoneStartsAt;
+  }
+
+  function isDriverDimmed(driver: DriverRow) {
+    return isQualifyingSession && driver.knockedOut;
+  }
+
+  function isCutoffWarning(driver: DriverRow) {
+    return isQualifyingSession && session.clockRunning && driver.cutoff;
+  }
+
 </script>
 
 <section class={["relative w-full rounded border border-zinc-800 bg-zinc-900", trackAlertClass]}>
@@ -68,7 +106,23 @@
 
       <tbody>
         {#each drivers as driver (driver.racingNumber)}
-          <DriverTableRow {driver} columns={displayedColumns} />
+          {#if shouldShowEliminationLine(driver)}
+            <tr>
+              <td
+                colspan={displayedColumns.length}
+                class="border-y border-red-500/40 bg-red-500/10 px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-[0.2em] text-red-300"
+              >
+                Elimination zone
+              </td>
+            </tr>
+          {/if}
+
+          <DriverTableRow
+            {driver}
+            columns={displayedColumns}
+            isDimmed={isDriverDimmed(driver)}
+            isCutoffWarning={isCutoffWarning(driver)}
+          />
         {/each}
       </tbody>
     </table>

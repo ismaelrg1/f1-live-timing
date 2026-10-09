@@ -2,17 +2,23 @@
   import DashboardHeader from '../lib/components/dashboard/DashboardHeader.svelte';
   import DriverTable from '../lib/components/driver-table/DriverTable.svelte';
 
-  import { mockDriverRows, mockSessionState } from '../lib/data/mockDashboard';
+  // import { mockDriverRows, mockSessionState } from '../lib/data/mockDashboard';
+  import {
+    mockQualifyingQ1LiveDriverRows as mockDriverRows,
+    mockQualifyingQ1LiveSessionState as mockSessionState
+  } from '../lib/data/mockDashboard';
+
   import { visibleColumns } from '../lib/stores/columnsStore';
 </script>
 
 <section class="min-h-screen bg-zinc-950 p-6 text-zinc-100">
+
   <DashboardHeader session={mockSessionState} />
 
   <DriverTable
+    session={mockSessionState}
     drivers={mockDriverRows}
     columns={$visibleColumns}
-    trackStatusCode={mockSessionState.trackStatusCode}
   />
 </section>
 

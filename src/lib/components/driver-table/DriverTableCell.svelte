@@ -38,7 +38,7 @@
 
 {:else if column.id === 'gapToLeader'}
   <span class="font-semibold tabular-nums text-zinc-100">
-    {driver.gapToLeader || 'LEADER'}
+    {driver.position === '1' ? 'LEADER' : driver.gapToLeader || '-'}
   </span>
 
 {:else if column.id === 'intervalToAhead'}
