@@ -1,0 +1,19 @@
+{
+  "replays": [
+    {
+      "id": "2026-10-11_2000Z_singapore_grand_prix_race",
+      "label": "2026 · Singapore Grand Prix · Race",
+      "parts": [
+        "/replays/raw/2026-10-11_2000Z_singapore_grand_prix_race_part01.jsonl"
+      ]
+    },
+    {
+      "id": "2026-10-09_2030Z_singapore_grand_prix_sprint_qualifying",
+      "label": "2026 · Singapore Grand Prix · Sprint Qualifying",
+      "parts": [
+        "/replays/raw/2026-10-09_2030Z_singapore_grand_prix_sprint_qualifying_part01.jsonl",
+        "/replays/raw/2026-10-09_2030Z_singapore_grand_prix_sprint_qualifying_part02.jsonl"
+      ]
+    }
+  ]
+}
