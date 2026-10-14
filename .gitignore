@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+venv_f1/
+.env
+.env.*
+*.db
+*.sqlite
+*.sqlite3
+
+# Node / Svelte
+node_modules/
+.svelte-kit/
+build/
+dashboard/f1-dashboard/node_modules/
+dashboard/f1-dashboard/.svelte-kit/
+dashboard/f1-dashboard/build/
+
+# Runtime data
+data/livetiming/raw/*
+!data/livetiming/raw/.gitkeep
+
+# Local
+.DS_Store
+.vscode/
+.idea/
