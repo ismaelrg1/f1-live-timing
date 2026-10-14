@@ -126,6 +126,15 @@
 
     return rows;
   });
+
+  function rowFlipDuration(distance: number) {
+    if (distance > 260) return 950;
+    if (distance > 160) return 800;
+    if (distance > 80) return 650;
+
+    return 480;
+  }
+
 </script>
 
 <section class={["relative w-full rounded border border-zinc-800 bg-zinc-900", trackAlertClass]}>
@@ -145,7 +154,7 @@
       <tbody>
         {#each tableRows as row (row.id)}
           <tr
-            animate:flip={{ duration: 550, easing: cubicOut }}
+            animate:flip={{ duration: rowFlipDuration, easing: cubicOut }}
             class={[
               row.type === 'driver' && 'border-t border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800/60',
               row.type === 'driver' && row.isDimmed && 'opacity-45 grayscale',

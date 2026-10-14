@@ -1,50 +1,54 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
 
   import DashboardHeader from '../lib/components/dashboard/DashboardHeader.svelte';
+  import DashboardSecondaryPanels from '../lib/components/dashboard/DashboardSecondaryPanels.svelte';
   import DriverTable from '../lib/components/driver-table/DriverTable.svelte';
-  import { defaultMockScenario, mockScenarios } from '../lib/data/mockScenarios';
+
   import { dashboardData, type DashboardDataMode } from '../lib/stores/dashboardStore';
   import { visibleColumns } from '../lib/stores/columnsStore';
-
-  import DashboardSecondaryPanels from '../lib/components/dashboard/DashboardSecondaryPanels.svelte';
   import { raceControlStore } from '../lib/stores/raceControlStore';
   import { teamRadioStore } from '../lib/stores/teamRadioStore';
 
+  let dataMode = $derived($dashboardData.mode);
+  let activeSession = $derived($dashboardData.session);
+  let activeDrivers = $derived($dashboardData.drivers);
 
-  let activeScenarioId = $state(defaultMockScenario.id);
-  let replayUrl = $state('ws://127.0.0.1:8765');
-
-  let activeScenario = $derived.by(() => {
-    return mockScenarios.find((scenario) => scenario.id === activeScenarioId) ?? defaultMockScenario;
+  let replayProgressLabel = $derived.by(() => {
+    return `${Math.round($dashboardData.replayProgress * 100)}%`;
   });
 
-  let dataMode = $derived($dashboardData.mode);
-  let activeSession = $derived($dashboardData.session ?? activeScenario.session);
-  let activeDrivers = $derived(
-    $dashboardData.session ? $dashboardData.drivers : activeScenario.drivers
-  );
+  onMount(() => {
+    dashboardData.loadReplays();
+    dashboardData.connectLiveWebSocket();
+  });
 
-  $effect(() => {
-    if (dataMode === 'mock') {
-      dashboardData.setMockData(activeScenario.session, activeScenario.drivers);
-    }
+  onDestroy(() => {
+    dashboardData.disconnectWebSocket();
   });
 
   function handleModeChange(event: Event) {
     const select = event.currentTarget as HTMLSelectElement;
     const mode = select.value as DashboardDataMode;
 
-    if (mode === 'mock') {
-      dashboardData.setMockData(activeScenario.session, activeScenario.drivers);
+    if (mode === 'live') {
+      dashboardData.connectLiveWebSocket();
       return;
     }
 
-    dashboardData.connectReplayWebSocket(replayUrl);
+    const replayId = $dashboardData.selectedReplayId ?? $dashboardData.replays[0]?.id;
+
+    if (replayId) {
+      dashboardData.connectReplayById(replayId);
+    }
   }
 
-  function handleReplayConnect() {
-    dashboardData.connectReplayWebSocket(replayUrl);
+  function handleReplayChange(event: Event) {
+    const select = event.currentTarget as HTMLSelectElement;
+
+    if (select.value) {
+      dashboardData.connectReplayById(select.value);
+    }
   }
 
   function handleReplayToggle() {
@@ -66,19 +70,22 @@
     dashboardData.seekReplay(Number(input.value) / 1000);
   }
 
-  let replayProgressLabel = $derived.by(() => {
-    return `${Math.round($dashboardData.replayProgress * 100)}%`;
-  });
-
   function replayMarkerClass(kind: string) {
     if (kind === 'start') return 'border-emerald-300 bg-emerald-400 shadow-emerald-400/40';
     if (kind === 'aborted') return 'border-red-200 bg-red-500 shadow-red-500/40';
     return 'border-sky-200 bg-sky-400 shadow-sky-400/40';
   }
 
-  onDestroy(() => {
-    dashboardData.disconnectReplayWebSocket();
-  });
+  function replayMarkerSegmentClass(kind: string) {
+    if (kind === 'safety_car') return 'bg-yellow-400/45';
+    if (kind === 'virtual_safety_car') return 'bg-yellow-300/30';
+    if (kind === 'red_flag') return 'bg-red-500/50';
+    return '';
+  }
+
+  function isReplaySegment(kind: string) {
+    return ['safety_car', 'virtual_safety_car', 'red_flag'].includes(kind);
+  }
 </script>
 
 <svelte:head>
@@ -93,8 +100,14 @@
       </p>
 
       <p class="truncate text-xs font-semibold text-zinc-400">
-        {#if dataMode === 'mock'}
-          {activeScenario.description}
+        {#if dataMode === 'live'}
+          {#if $dashboardData.liveRunning}
+            Live timing · {$dashboardData.lastTopic ?? 'waiting'}
+          {:else if $dashboardData.connecting}
+            Connecting live timing...
+          {:else}
+            Live timing inactive
+          {/if}
         {:else if $dashboardData.connected}
           Replay connected · {$dashboardData.lastTopic ?? 'waiting'}
         {:else if $dashboardData.connecting}
@@ -115,38 +128,29 @@
           class="h-8 rounded border border-zinc-700 bg-zinc-900 px-2 text-xs font-bold normal-case tracking-normal text-zinc-100 outline-none focus:border-sky-500"
           onchange={handleModeChange}
         >
-          <option value="mock">Mock</option>
+          <option value="live">Live Timing</option>
           <option value="replay">Replay</option>
         </select>
       </label>
 
-      {#if dataMode === 'mock'}
+      {#if dataMode === 'replay'}
         <label
-          class="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-zinc-500"
+          class="flex min-w-0 items-center gap-2 text-[10px] font-black uppercase tracking-wider text-zinc-500"
         >
-          <span>Scenario</span>
+          <span>Session</span>
           <select
-            bind:value={activeScenarioId}
-            class="h-8 rounded border border-zinc-700 bg-zinc-900 px-2 text-xs font-bold normal-case tracking-normal text-zinc-100 outline-none focus:border-sky-500"
+            value={$dashboardData.selectedReplayId ?? ''}
+            class="h-8 max-w-[22rem] rounded border border-zinc-700 bg-zinc-900 px-2 text-xs font-bold normal-case tracking-normal text-zinc-100 outline-none focus:border-sky-500"
+            onchange={handleReplayChange}
+            disabled={$dashboardData.replays.length === 0}
           >
-            {#each mockScenarios as scenario}
-              <option value={scenario.id}>{scenario.label}</option>
+            {#each $dashboardData.replays as replay}
+              <option value={replay.id}>
+                {replay.label}
+              </option>
             {/each}
           </select>
         </label>
-      {:else}
-        <input
-          bind:value={replayUrl}
-          class="h-8 w-56 rounded border border-zinc-700 bg-zinc-900 px-2 text-xs font-semibold text-zinc-100 outline-none focus:border-sky-500"
-        />
-
-        <button
-          type="button"
-          class="h-8 rounded border border-zinc-700 bg-zinc-900 px-3 text-xs font-black text-zinc-100 hover:border-sky-500"
-          onclick={handleReplayConnect}
-        >
-          Connect
-        </button>
       {/if}
     </div>
   </div>
@@ -197,28 +201,46 @@
             {$dashboardData.replayCurrentIndex} / {$dashboardData.replayTotalEvents}
           </span>
         </div>
-        <div class="relative pt-2">
+
+        <div class="relative h-8">
           <input
             type="range"
             min="0"
             max="1000"
             step="1"
             value={Math.round($dashboardData.replayProgress * 1000)}
-            class="relative z-10 w-full accent-sky-500"
+            class="absolute left-0 right-0 top-1/2 z-10 w-full -translate-y-1/2 accent-sky-500"
             onchange={handleReplaySeek}
             disabled={!$dashboardData.connected}
           />
 
-          <div class="pointer-events-none absolute left-0 right-0 top-0 h-3">
+          <div class="pointer-events-none absolute left-0 right-0 top-1/2 z-20 h-1.5 -translate-y-1/2 overflow-hidden rounded-full">
             {#each $dashboardData.replayMarkers as marker}
-              <span
-                class={[
-                  'absolute top-0 h-3 w-1.5 -translate-x-1/2 rounded-full border shadow-[0_0_10px]',
-                  replayMarkerClass(marker.kind)
-                ]}
-                style={`left: ${marker.progress * 100}%`}
-                title={`${marker.label} · ${marker.status}`}
-              ></span>
+              {#if marker.end_progress !== undefined && marker.end_progress !== null && isReplaySegment(marker.kind)}
+                <span
+                  class={[
+                    'absolute top-0 h-full rounded-full',
+                    replayMarkerSegmentClass(marker.kind)
+                  ]}
+                  style={`left: ${marker.progress * 100}%; width: max(3px, ${Math.max(0, marker.end_progress - marker.progress) * 100}%)`}
+                  title={`${marker.label} · ${marker.status}`}
+                ></span>
+              {/if}
+            {/each}
+          </div>
+
+          <div class="pointer-events-none absolute left-0 right-0 top-1/2 z-30 h-4 -translate-y-1/2">
+            {#each $dashboardData.replayMarkers as marker}
+              {#if !isReplaySegment(marker.kind)}
+                <span
+                  class={[
+                    'absolute top-1/2 h-4 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full border shadow-[0_0_10px]',
+                    replayMarkerClass(marker.kind)
+                  ]}
+                  style={`left: ${marker.progress * 100}%`}
+                  title={`${marker.label} · ${marker.status}`}
+                ></span>
+              {/if}
             {/each}
           </div>
         </div>
@@ -230,16 +252,28 @@
     </div>
   {/if}
 
-  <DashboardHeader session={activeSession} />
+  {#if activeSession && activeDrivers.length > 0}
+    <DashboardHeader session={activeSession} />
 
-  <DriverTable
-    session={activeSession}
-    drivers={activeDrivers}
-    columns={$visibleColumns}
-  />
+    <DriverTable
+      session={activeSession}
+      drivers={activeDrivers}
+      columns={$visibleColumns}
+    />
 
-  <DashboardSecondaryPanels
-    teamRadio={$teamRadioStore}
-    raceControlMessages={$raceControlStore}
-  />
+    <DashboardSecondaryPanels
+      teamRadio={$teamRadioStore}
+      raceControlMessages={$raceControlStore}
+    />
+  {:else}
+    <div class="rounded border border-zinc-800 bg-zinc-900/70 p-6 text-sm font-bold text-zinc-400">
+      {#if dataMode === 'live'}
+        Waiting for live timing data...
+      {:else if $dashboardData.replays.length === 0}
+        No saved replays found.
+      {:else}
+        Select a replay session.
+      {/if}
+    </div>
+  {/if}
 </section>

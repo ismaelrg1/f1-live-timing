@@ -1,3 +1,4 @@
+import { io, type Socket } from 'socket.io-client';
 import { writable } from 'svelte/store';
 import type { DashboardSessionState, DriverRow } from '../types/dashboard';
 
@@ -6,14 +7,29 @@ import { raceControlStore } from './raceControlStore';
 import type { TeamRadioCapture } from '../types/teamRadio';
 import type { RaceControlMessage } from '../types/raceControl';
 
-export type DashboardDataMode = 'mock' | 'replay';
+export type DashboardDataMode = 'live' | 'replay';
 
 export interface ReplayMarker {
   index: number;
   progress: number;
   label: string;
   status: string;
-  kind: 'start' | 'end' | 'aborted' | string;
+  kind:
+    | 'start'
+    | 'end'
+    | 'aborted'
+    | 'safety_car'
+    | 'virtual_safety_car'
+    | 'red_flag'
+    | string;
+  end_index?: number | null;
+  end_progress?: number | null;
+}
+
+export interface ReplayOption {
+  id: string;
+  label: string;
+  parts: number;
 }
 
 interface DashboardDataState {
@@ -25,6 +41,9 @@ interface DashboardDataState {
   error: string | null;
   lastTopic: string | null;
   lastReceivedAt: string | null;
+  liveRunning: boolean;
+  replays: ReplayOption[];
+  selectedReplayId: string | null;
   replayProgress: number;
   replaySpeed: number;
   replayPaused: boolean;
@@ -47,8 +66,8 @@ interface DashboardStateMessage {
     session: DashboardSessionState;
     drivers: DriverRow[];
     secondaryPanels?: {
-        teamRadio?: TeamRadioCapture[];
-        raceControlMessages?: RaceControlMessage[];
+      teamRadio?: TeamRadioCapture[];
+      raceControlMessages?: RaceControlMessage[];
     };
   };
 }
@@ -56,6 +75,7 @@ interface DashboardStateMessage {
 interface ReplayStartedMessage {
   type: 'replay_started';
   path: string;
+  paths?: string[];
   totalEvents: number;
   speed: number;
   paused: boolean;
@@ -65,12 +85,33 @@ interface ReplayStartedMessage {
 interface ReplayFinishedMessage {
   type: 'replay_finished';
   path: string;
+  paths?: string[];
 }
 
-type ReplayMessage = DashboardStateMessage | ReplayStartedMessage | ReplayFinishedMessage;
+interface LiveStatusMessage {
+  type: 'live_status';
+  running: boolean;
+  hasState?: boolean;
+  output?: string | null;
+  reason?: string;
+  sessionEndDetected?: boolean;
+  sessionEndDetectedAt?: string;
+}
+
+interface ErrorMessage {
+  type: 'error';
+  error: string;
+}
+
+type DashboardSocketMessage =
+  | DashboardStateMessage
+  | ReplayStartedMessage
+  | ReplayFinishedMessage
+  | LiveStatusMessage
+  | ErrorMessage;
 
 const initialState: DashboardDataState = {
-  mode: 'mock',
+  mode: 'live',
   session: null,
   drivers: [],
   connected: false,
@@ -78,6 +119,9 @@ const initialState: DashboardDataState = {
   error: null,
   lastTopic: null,
   lastReceivedAt: null,
+  liveRunning: false,
+  replays: [],
+  selectedReplayId: null,
   replayProgress: 0,
   replaySpeed: 10,
   replayPaused: false,
@@ -86,17 +130,22 @@ const initialState: DashboardDataState = {
   replayMarkers: []
 };
 
-function createDashboardDataStore() {
-  const { subscribe, update, set } = writable<DashboardDataState>(initialState);
+function replayApiUrl() {
+  return `${window.location.origin}/api/livetiming/replays`;
+}
 
-  let socket: WebSocket | null = null;
+function createDashboardDataStore() {
+  const { subscribe, update } = writable<DashboardDataState>(initialState);
+
+  let socket: Socket | null = null;
   let connectionId = 0;
 
-  function disconnectReplayWebSocket() {
+  function disconnectWebSocket() {
     connectionId += 1;
 
     if (socket) {
-      socket.close();
+      socket.emit('livetiming:stop');
+      socket.disconnect();
       socket = null;
     }
 
@@ -111,42 +160,94 @@ function createDashboardDataStore() {
     }));
   }
 
-  function setMockData(session: DashboardSessionState, drivers: DriverRow[]) {
-    disconnectReplayWebSocket();
+  function handleDashboardMessage(message: DashboardSocketMessage, mode: DashboardDataMode) {
+    if (message.type === 'live_status') {
+      update((state) => ({
+        ...state,
+        connected: true,
+        connecting: false,
+        liveRunning: Boolean(message.running),
+        lastTopic: message.running ? 'live_status' : 'live_inactive',
+        error: null
+      }));
 
-    set({
-      mode: 'mock',
-      session,
-      drivers,
-      connected: false,
+      return;
+    }
+
+    if (message.type === 'error') {
+      update((state) => ({
+        ...state,
+        error: message.error
+      }));
+
+      return;
+    }
+
+    if (message.type === 'replay_started') {
+      teamRadioStore.reset();
+      raceControlStore.reset();
+
+      update((state) => ({
+        ...state,
+        replayTotalEvents: message.totalEvents,
+        replaySpeed: message.speed,
+        replayPaused: message.paused,
+        replayProgress: 0,
+        replayCurrentIndex: 0,
+        replayMarkers: message.markers,
+        lastTopic: 'replay_started'
+      }));
+
+      return;
+    }
+
+    if (message.type === 'replay_finished') {
+      update((state) => ({
+        ...state,
+        connected: false,
+        connecting: false,
+        replayPaused: true,
+        replayProgress: 1,
+        lastTopic: 'replay_finished'
+      }));
+
+      return;
+    }
+
+    teamRadioStore.setCaptures(message.payload.secondaryPanels?.teamRadio ?? []);
+    raceControlStore.setMessages(message.payload.secondaryPanels?.raceControlMessages ?? []);
+
+    update((state) => ({
+      ...state,
+      session: message.payload.session,
+      drivers: message.payload.drivers,
+      connected: true,
       connecting: false,
-      error: null,
-      lastTopic: null,
-      lastReceivedAt: null,
-      replayProgress: 0,
-      replaySpeed: 10,
-      replayPaused: false,
-      replayCurrentIndex: 0,
-      replayTotalEvents: 0,
-      replayMarkers: []
-    });
-
-    teamRadioStore.reset();
-    raceControlStore.reset();
+      liveRunning: mode === 'live' ? true : state.liveRunning,
+      lastTopic: message.topic,
+      lastReceivedAt: message.receivedAt,
+      replayProgress: message.progress ?? state.replayProgress,
+      replaySpeed: message.speed ?? state.replaySpeed,
+      replayPaused: message.paused ?? state.replayPaused,
+      replayCurrentIndex: message.currentIndex ?? state.replayCurrentIndex,
+      replayTotalEvents: message.totalEvents ?? state.replayTotalEvents,
+      error: null
+    }));
   }
 
-  function connectReplayWebSocket(url = 'ws://127.0.0.1:8765') {
-    disconnectReplayWebSocket();
+  function connectSocket(mode: DashboardDataMode, replayId?: string) {
+    disconnectWebSocket();
     const currentConnectionId = connectionId;
 
     update((state) => ({
       ...state,
-      mode: 'replay',
+      mode,
       connected: false,
       connecting: true,
       error: null,
       lastTopic: null,
       lastReceivedAt: null,
+      liveRunning: mode === 'live' ? false : state.liveRunning,
       replayProgress: 0,
       replayPaused: false,
       replayCurrentIndex: 0,
@@ -154,9 +255,16 @@ function createDashboardDataStore() {
       replayMarkers: []
     }));
 
-    socket = new WebSocket(url);
+    socket = io('/livetiming', {
+      transports: ['websocket'],
+      withCredentials: true
+    });
 
-    socket.addEventListener('open', () => {
+    socket.onAny((event, ...args) => {
+      console.log('[dashboardStore] socket event', event, args);
+    });
+
+    socket.on('connect', () => {
       if (currentConnectionId !== connectionId) return;
 
       update((state) => ({
@@ -165,100 +273,107 @@ function createDashboardDataStore() {
         connecting: false,
         error: null
       }));
+
+      if (mode === 'live') {
+        socket?.emit('livetiming:live');
+        return;
+      }
+
+      socket?.emit('livetiming:replay', { replayId });
     });
 
-    socket.addEventListener('message', (event) => {
+    socket.on('livetiming:message', (message: DashboardSocketMessage) => {
+
+      if (currentConnectionId !== connectionId) {
+        console.log('[dashboardStore] ignored old message');
+        return;
+      }
+
+      handleDashboardMessage(message, mode);
+    });
+
+    socket.on('livetiming:error', (message: ErrorMessage) => {
       if (currentConnectionId !== connectionId) return;
-
-      const message = JSON.parse(event.data) as ReplayMessage;
-
-      if (message.type === 'replay_started') {
-        teamRadioStore.reset();
-        raceControlStore.reset();
-
-        update((state) => ({
-          ...state,
-          replayTotalEvents: message.totalEvents,
-          replaySpeed: message.speed,
-          replayPaused: message.paused,
-          replayProgress: 0,
-          replayCurrentIndex: 0,
-          replayMarkers: message.markers,
-          lastTopic: 'replay_started'
-        }));
-
-        return;
-      }
-
-      if (message.type === 'replay_finished') {
-        update((state) => ({
-          ...state,
-          connected: false,
-          connecting: false,
-          replayPaused: true,
-          replayProgress: 1,
-          lastTopic: 'replay_finished'
-        }));
-
-        return;
-      }
-
-      teamRadioStore.setCaptures(message.payload.secondaryPanels?.teamRadio ?? []);
-      raceControlStore.setMessages(message.payload.secondaryPanels?.raceControlMessages ?? []);
 
       update((state) => ({
         ...state,
-        session: message.payload.session,
-        drivers: message.payload.drivers,
-        lastTopic: message.topic,
-        lastReceivedAt: message.receivedAt,
-        replayProgress: message.progress ?? state.replayProgress,
-        replaySpeed: message.speed ?? state.replaySpeed,
-        replayPaused: message.paused ?? state.replayPaused,
-        replayCurrentIndex: message.currentIndex ?? state.replayCurrentIndex,
-        replayTotalEvents: message.totalEvents ?? state.replayTotalEvents,
-        error: null
+        error: message.error
       }));
     });
 
-    socket.addEventListener('close', () => {
+    socket.on('disconnect', () => {
       if (currentConnectionId !== connectionId) return;
-
-      teamRadioStore.reset();
-      raceControlStore.reset();
 
       update((state) => ({
         ...state,
         connected: false,
         connecting: false,
-        replayPaused: true
+        liveRunning: mode === 'live' ? false : state.liveRunning,
+        replayPaused: mode === 'replay' ? true : state.replayPaused
       }));
 
       socket = null;
     });
 
-    socket.addEventListener('error', () => {
+    socket.on('connect_error', () => {
       if (currentConnectionId !== connectionId) return;
-
-      teamRadioStore.reset();
-      raceControlStore.reset();
 
       update((state) => ({
         ...state,
         connected: false,
         connecting: false,
-        error: 'Replay websocket connection failed'
+        liveRunning: mode === 'live' ? false : state.liveRunning,
+        error: mode === 'live'
+          ? 'Live timing websocket connection failed'
+          : 'Replay websocket connection failed'
       }));
     });
   }
 
-  function sendReplayControl(payload: Record<string, unknown>) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+  async function loadReplays() {
+    try {
+      const response = await fetch(replayApiUrl());
 
-    socket.send(JSON.stringify({
+      if (!response.ok) {
+        throw new Error('Could not load replays');
+      }
+
+      const data = await response.json();
+      const replays = (data.replays ?? []) as ReplayOption[];
+
+      update((state) => ({
+        ...state,
+        replays,
+        selectedReplayId: state.selectedReplayId ?? replays[0]?.id ?? null
+      }));
+    } catch {
+      update((state) => ({
+        ...state,
+        error: 'Could not load replays'
+      }));
+    }
+  }
+
+  function connectLiveWebSocket() {
+    connectSocket('live');
+  }
+
+  function connectReplayById(replayId: string) {
+    update((state) => ({
+      ...state,
+      selectedReplayId: replayId
+    }));
+
+    connectSocket('replay', replayId);
+  }
+
+  function sendReplayControl(payload: Record<string, unknown>) {
+    if (!socket || !socket.connected) return;
+
+    socket.emit('livetiming:control', {
       type: 'replay_control',
       ...payload
-    }));
+    });
   }
 
   function playReplay() {
@@ -298,30 +413,12 @@ function createDashboardDataStore() {
     }));
   }
 
-  function setMode(mode: DashboardDataMode) {
-    if (mode === 'mock') {
-      disconnectReplayWebSocket();
-
-      update((state) => ({
-        ...state,
-        mode: 'mock',
-        connected: false,
-        connecting: false,
-        error: null
-      }));
-
-      return;
-    }
-
-    connectReplayWebSocket();
-  }
-
   return {
     subscribe,
-    setMockData,
-    connectReplayWebSocket,
-    disconnectReplayWebSocket,
-    setMode,
+    loadReplays,
+    connectLiveWebSocket,
+    connectReplayById,
+    disconnectWebSocket,
     playReplay,
     pauseReplay,
     seekReplay,
