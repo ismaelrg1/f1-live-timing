@@ -1,0 +1,9 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+
+
+:root {
+  --color-positive: #2dd4bf;
+  --color-negative: #fb7185;
+  --color-muted: #71717a;
+}
