@@ -8,6 +8,10 @@ import type { TeamRadioCapture } from '../types/teamRadio';
 import type { RaceControlMessage } from '../types/raceControl';
 
 export type DashboardDataMode = 'live' | 'replay';
+export type DashboardRuntimeMode = 'remote' | 'static';
+
+export const dashboardRuntimeMode: DashboardRuntimeMode =
+  import.meta.env.VITE_DASHBOARD_SOURCE === 'static' ? 'static' : 'remote';
 
 export interface ReplayMarker {
   index: number;
@@ -30,6 +34,12 @@ export interface ReplayOption {
   id: string;
   label: string;
   parts: number;
+}
+
+interface StaticReplayCatalogEntry {
+  id: string;
+  label: string;
+  parts: string[];
 }
 
 interface DashboardDataState {
@@ -111,7 +121,7 @@ type DashboardSocketMessage =
   | ErrorMessage;
 
 const initialState: DashboardDataState = {
-  mode: 'live',
+  mode: dashboardRuntimeMode === 'static' ? 'replay' : 'live',
   session: null,
   drivers: [],
   connected: false,
@@ -134,14 +144,37 @@ function replayApiUrl() {
   return `${window.location.origin}/api/livetiming/replays`;
 }
 
+function staticAssetUrl(path: string) {
+  if (/^https?:\/\//.test(path)) return path;
+
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+  return `${base}${cleanPath}`;
+}
+
+function staticCatalogUrl() {
+  return staticAssetUrl('/replays/catalog.json');
+}
+
+function staticReplayUrl(replayId: string) {
+  return staticAssetUrl(`/replays/generated/${replayId}.jsonl`);
+}
+
 function createDashboardDataStore() {
   const { subscribe, update } = writable<DashboardDataState>(initialState);
 
   let socket: Socket | null = null;
   let connectionId = 0;
+  let staticMessages: DashboardSocketMessage[] = [];
+  let staticMessageIndex = 0;
+  let staticTimer: ReturnType<typeof window.setTimeout> | null = null;
+  let staticPaused = false;
+  let staticSpeed = 10;
 
   function disconnectWebSocket() {
     connectionId += 1;
+    stopStaticReplay();
 
     if (socket) {
       socket.emit('livetiming:stop');
@@ -158,6 +191,17 @@ function createDashboardDataStore() {
       connecting: false,
       replayPaused: false
     }));
+  }
+
+  function stopStaticReplay() {
+    if (staticTimer) {
+      window.clearTimeout(staticTimer);
+      staticTimer = null;
+    }
+
+    staticMessages = [];
+    staticMessageIndex = 0;
+    staticPaused = false;
   }
 
   function handleDashboardMessage(message: DashboardSocketMessage, mode: DashboardDataMode) {
@@ -236,6 +280,23 @@ function createDashboardDataStore() {
   }
 
   function connectSocket(mode: DashboardDataMode, replayId?: string) {
+    if (dashboardRuntimeMode === 'static') {
+      if (mode === 'replay' && replayId) {
+        void connectStaticReplayById(replayId);
+        return;
+      }
+
+      update((state) => ({
+        ...state,
+        mode: 'replay',
+        connected: false,
+        connecting: false,
+        liveRunning: false,
+        error: 'Live timing is not available in the static build'
+      }));
+      return;
+    }
+
     disconnectWebSocket();
     const currentConnectionId = connectionId;
 
@@ -260,10 +321,6 @@ function createDashboardDataStore() {
       withCredentials: true
     });
 
-    socket.onAny((event, ...args) => {
-      console.log('[dashboardStore] socket event', event, args);
-    });
-
     socket.on('connect', () => {
       if (currentConnectionId !== connectionId) return;
 
@@ -285,7 +342,6 @@ function createDashboardDataStore() {
     socket.on('livetiming:message', (message: DashboardSocketMessage) => {
 
       if (currentConnectionId !== connectionId) {
-        console.log('[dashboardStore] ignored old message');
         return;
       }
 
@@ -332,14 +388,22 @@ function createDashboardDataStore() {
 
   async function loadReplays() {
     try {
-      const response = await fetch(replayApiUrl());
+      const response = await fetch(
+        dashboardRuntimeMode === 'static' ? staticCatalogUrl() : replayApiUrl()
+      );
 
       if (!response.ok) {
         throw new Error('Could not load replays');
       }
 
       const data = await response.json();
-      const replays = (data.replays ?? []) as ReplayOption[];
+      const replays = dashboardRuntimeMode === 'static'
+        ? ((data.replays ?? []) as StaticReplayCatalogEntry[]).map((replay) => ({
+          id: replay.id,
+          label: replay.label,
+          parts: replay.parts.length
+        }))
+        : (data.replays ?? []) as ReplayOption[];
 
       update((state) => ({
         ...state,
@@ -367,13 +431,172 @@ function createDashboardDataStore() {
     connectSocket('replay', replayId);
   }
 
+  async function connectStaticReplayById(replayId: string) {
+    disconnectWebSocket();
+    const currentConnectionId = connectionId;
+
+    update((state) => ({
+      ...state,
+      mode: 'replay',
+      selectedReplayId: replayId,
+      connected: false,
+      connecting: true,
+      error: null,
+      lastTopic: null,
+      lastReceivedAt: null,
+      replayProgress: 0,
+      replayPaused: false,
+      replayCurrentIndex: 0,
+      replayTotalEvents: 0,
+      replayMarkers: []
+    }));
+
+    try {
+      const response = await fetch(staticReplayUrl(replayId));
+
+      if (!response.ok) {
+        throw new Error('Could not load static replay');
+      }
+
+      const text = await response.text();
+      staticMessages = text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as DashboardSocketMessage);
+      staticMessageIndex = 0;
+      staticPaused = false;
+      staticSpeed = 10;
+
+      if (currentConnectionId !== connectionId) return;
+
+      update((state) => ({
+        ...state,
+        connected: true,
+        connecting: false,
+        error: null
+      }));
+
+      runStaticReplay(currentConnectionId);
+    } catch {
+      if (currentConnectionId !== connectionId) return;
+
+      update((state) => ({
+        ...state,
+        connected: false,
+        connecting: false,
+        error: 'Could not load static replay'
+      }));
+    }
+  }
+
+  function runStaticReplay(currentConnectionId: number) {
+    if (currentConnectionId !== connectionId || staticPaused) return;
+
+    const message = staticMessages[staticMessageIndex];
+
+    if (!message) {
+      handleDashboardMessage({
+        type: 'replay_finished',
+        path: ''
+      }, 'replay');
+      return;
+    }
+
+    handleDashboardMessage(message, 'replay');
+    staticMessageIndex += 1;
+
+    const nextMessage = staticMessages[staticMessageIndex];
+    const delay = staticDelay(message, nextMessage);
+
+    staticTimer = window.setTimeout(() => {
+      runStaticReplay(currentConnectionId);
+    }, delay);
+  }
+
+  function staticDelay(
+    currentMessage: DashboardSocketMessage,
+    nextMessage: DashboardSocketMessage | undefined
+  ) {
+    if (!nextMessage || currentMessage.type !== 'dashboard_state' || nextMessage.type !== 'dashboard_state') {
+      return 0;
+    }
+
+    if (!currentMessage.receivedAt || !nextMessage.receivedAt) {
+      return 1000 / staticSpeed;
+    }
+
+    const currentTime = Date.parse(currentMessage.receivedAt);
+    const nextTime = Date.parse(nextMessage.receivedAt);
+
+    if (!Number.isFinite(currentTime) || !Number.isFinite(nextTime)) {
+      return 1000 / staticSpeed;
+    }
+
+    return Math.max(0, (nextTime - currentTime) / staticSpeed);
+  }
+
   function sendReplayControl(payload: Record<string, unknown>) {
+    if (dashboardRuntimeMode === 'static') {
+      handleStaticReplayControl(payload);
+      return;
+    }
+
     if (!socket || !socket.connected) return;
 
     socket.emit('livetiming:control', {
       type: 'replay_control',
       ...payload
     });
+  }
+
+  function handleStaticReplayControl(payload: Record<string, unknown>) {
+    const action = payload.action;
+
+    if (action === 'play') {
+      staticPaused = false;
+      update((state) => ({ ...state, replayPaused: false }));
+      runStaticReplay(connectionId);
+      return;
+    }
+
+    if (action === 'pause') {
+      staticPaused = true;
+      if (staticTimer) window.clearTimeout(staticTimer);
+      update((state) => ({ ...state, replayPaused: true }));
+      return;
+    }
+
+    if (action === 'set_speed') {
+      staticSpeed = Number(payload.speed) || 10;
+      update((state) => ({ ...state, replaySpeed: staticSpeed }));
+      return;
+    }
+
+    if (action === 'seek') {
+      const progress = Math.min(Math.max(Number(payload.progress) || 0, 0), 1);
+      const targetIndex = staticMessages.findIndex((message) => (
+        message.type === 'dashboard_state' && (message.progress ?? 0) >= progress
+      ));
+
+      staticMessageIndex = targetIndex === -1
+        ? Math.max(0, staticMessages.length - 1)
+        : targetIndex;
+
+      if (staticTimer) window.clearTimeout(staticTimer);
+      if (staticPaused) {
+        const message = staticMessages[staticMessageIndex];
+
+        if (message) {
+          handleDashboardMessage(message, 'replay');
+          staticMessageIndex += 1;
+        }
+
+        return;
+      }
+
+      runStaticReplay(connectionId);
+    }
   }
 
   function playReplay() {

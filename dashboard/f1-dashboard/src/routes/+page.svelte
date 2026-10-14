@@ -5,7 +5,11 @@
   import DashboardSecondaryPanels from '../lib/components/dashboard/DashboardSecondaryPanels.svelte';
   import DriverTable from '../lib/components/driver-table/DriverTable.svelte';
 
-  import { dashboardData, type DashboardDataMode } from '../lib/stores/dashboardStore';
+  import {
+    dashboardData,
+    dashboardRuntimeMode,
+    type DashboardDataMode
+  } from '../lib/stores/dashboardStore';
   import { visibleColumns } from '../lib/stores/columnsStore';
   import { raceControlStore } from '../lib/stores/raceControlStore';
   import { teamRadioStore } from '../lib/stores/teamRadioStore';
@@ -13,13 +17,25 @@
   let dataMode = $derived($dashboardData.mode);
   let activeSession = $derived($dashboardData.session);
   let activeDrivers = $derived($dashboardData.drivers);
+  let isStaticReplayMode = $derived(dashboardRuntimeMode === 'static');
 
   let replayProgressLabel = $derived.by(() => {
     return `${Math.round($dashboardData.replayProgress * 100)}%`;
   });
 
-  onMount(() => {
-    dashboardData.loadReplays();
+  onMount(async () => {
+    await dashboardData.loadReplays();
+
+    if (dashboardRuntimeMode === 'static') {
+      const replayId = $dashboardData.selectedReplayId ?? $dashboardData.replays[0]?.id;
+
+      if (replayId) {
+        dashboardData.connectReplayById(replayId);
+      }
+
+      return;
+    }
+
     dashboardData.connectLiveWebSocket();
   });
 
@@ -127,8 +143,11 @@
           value={dataMode}
           class="h-8 rounded border border-zinc-700 bg-zinc-900 px-2 text-xs font-bold normal-case tracking-normal text-zinc-100 outline-none focus:border-sky-500"
           onchange={handleModeChange}
+          disabled={isStaticReplayMode}
         >
-          <option value="live">Live Timing</option>
+          {#if !isStaticReplayMode}
+            <option value="live">Live Timing</option>
+          {/if}
           <option value="replay">Replay</option>
         </select>
       </label>

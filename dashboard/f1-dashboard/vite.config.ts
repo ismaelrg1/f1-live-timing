@@ -22,8 +22,8 @@ export default defineConfig({
 				assets: 'build',
 				fallback: 'index.html'
 			}),
-				paths: {
-				base: '/livetiming'
+			paths: {
+				base: process.env.PUBLIC_BASE_PATH ?? '/livetiming'
 			}
 		})
 	],
