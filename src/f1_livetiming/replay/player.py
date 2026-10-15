@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import argparse
+from fastapi import WebSocket, WebSocketDisconnect
 import asyncio
 import json
 import time
@@ -44,7 +44,17 @@ class ReplayPlayer:
         max_fps: float,
         loop_replay: bool,
     ) -> None:
-        self.replay_paths = resolve_replay_paths(replay_path)
+
+        paths = [replay_path] if isinstance(replay_path, (str, Path)) else replay_path
+        self.replay_paths = [Path(path) for path in paths]
+
+        if not self.replay_paths:
+            raise ValueError("No replay paths provided")
+
+        for path in self.replay_paths:
+            if not path.exists():
+                raise ValueError(f"Replay path does not exist: {path}")
+
         self.replay_path = self.replay_paths[0]
         self.speed = speed
         self.max_fps = max_fps
@@ -54,19 +64,11 @@ class ReplayPlayer:
         self.events = list(iter_replay_events_many(self.replay_paths))
         self.markers = replay_markers(self.events)
 
-    async def handle_client(self, websocket) -> None:
-        print(f"client connected: {websocket.remote_address}")
-
-        try:
-            await self.run_replay(websocket)
-        except websockets.ConnectionClosed:
-            print(f"client disconnected: {websocket.remote_address}")
-
     async def run_replay(self, websocket) -> None:
         playback = PlaybackState(speed=self.speed)
         controls_task = asyncio.create_task(self.receive_controls(websocket, playback))
 
-        await websocket.send(json.dumps({
+        await websocket.send_text(json.dumps({
             "type": "replay_started",
             "path": str(self.replay_path),
             "paths": [str(path) for path in self.replay_paths],
@@ -87,10 +89,10 @@ class ReplayPlayer:
                 if min_interval > 0 and now - last_sent_at < min_interval:
                     continue
 
-                await websocket.send(message)
+                await websocket.send_text(message)
                 last_sent_at = now
 
-            await websocket.send(json.dumps({
+            await websocket.send_text(json.dumps({
                 "type": "replay_finished",
                 "path": str(self.replay_path),
                 "paths": [str(path) for path in self.replay_paths],
@@ -101,8 +103,17 @@ class ReplayPlayer:
 
         controls_task.cancel()
 
-    async def receive_controls(self, websocket, playback: PlaybackState) -> None:
-        async for raw_message in websocket:
+    async def receive_controls(
+        self,
+        websocket: WebSocket,
+        playback: PlaybackState,
+    ) -> None:
+        while True:
+            try:
+                raw_message = await websocket.receive_text()
+            except WebSocketDisconnect:
+                return
+
             try:
                 message = json.loads(raw_message)
             except json.JSONDecodeError:
@@ -120,10 +131,20 @@ class ReplayPlayer:
             elif action == "toggle":
                 playback.paused = not playback.paused
             elif action == "set_speed":
-                playback.speed = clamp_float(message.get("speed"), minimum=0.1, maximum=200.0)
+                playback.speed = clamp_float(
+                    message.get("speed"),
+                    minimum=0.1,
+                    maximum=200.0,
+                )
             elif action == "seek":
-                progress = clamp_float(message.get("progress"), minimum=0.0, maximum=1.0)
-                playback.seek_index = int(progress * max(0, len(self.events) - 1))
+                progress = clamp_float(
+                    message.get("progress"),
+                    minimum=0.0,
+                    maximum=1.0,
+                )
+                playback.seek_index = int(
+                    progress * max(0, len(self.events) - 1)
+                )
 
     async def iter_dashboard_messages(self, state: RawLiveTimingState, playback: PlaybackState):
         while playback.index < len(self.events):
