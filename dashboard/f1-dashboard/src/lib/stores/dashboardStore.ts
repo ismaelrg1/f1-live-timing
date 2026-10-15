@@ -140,8 +140,13 @@ const initialState: DashboardDataState = {
   replayMarkers: []
 };
 
+function remoteUrl(path: string) {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return `${base}${path}`;
+}
+
 function replayApiUrl() {
-  return `${window.location.origin}/api/livetiming/replays`;
+  return remoteUrl('/api/v1/replays');
 }
 
 function staticAssetUrl(path: string) {

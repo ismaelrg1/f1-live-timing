@@ -30,19 +30,16 @@ export default defineConfig({
 
 	server: {
 		proxy: {
-			'/livetiming/replay-api': {
-				target: 'http://127.0.0.1:8768',
-				changeOrigin: true
-			},
-			'/livetiming/replay/ws': {
-				target: 'ws://127.0.0.1:8767',
-				ws: true,
-				changeOrigin: true
+			'/livetiming/api': {
+			target: 'http://127.0.0.1:8000',
+			changeOrigin: true,
+			rewrite: (path) => path.replace(/^\/livetiming/, '')
 			},
 			'/livetiming/ws': {
-				target: 'ws://127.0.0.1:8765',
-				ws: true,
-				changeOrigin: true
+			target: 'ws://127.0.0.1:8000',
+			ws: true,
+			changeOrigin: true,
+			rewrite: (path) => path.replace(/^\/livetiming/, '')
 			}
 		}
 	},
