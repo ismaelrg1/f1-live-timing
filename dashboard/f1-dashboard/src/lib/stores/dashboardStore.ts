@@ -197,7 +197,7 @@ function createDashboardDataStore() {
   let connectionId = 0;
   let staticMessages: DashboardSocketMessage[] = [];
   let staticMessageIndex = 0;
-  let staticTimer: ReturnType<typeof window.setTimeout> | null = null;
+  let staticTimer: number | null = null;
   let staticPaused = false;
   let staticSpeed = 10;
 
@@ -612,11 +612,7 @@ function createDashboardDataStore() {
         type: 'replay_control',
         ...payload
       }));
-      return;
     }
-
-    if (!socket || !socket.connected) return;
-
   }
 
   function handleStaticReplayControl(payload: Record<string, unknown>) {

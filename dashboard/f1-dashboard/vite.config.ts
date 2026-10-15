@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 
+const basePath = process.env.PUBLIC_BASE_PATH ?? '/livetiming';
+
 export default defineConfig({
 	plugins: [
 		tailwindcss(),
@@ -23,7 +25,7 @@ export default defineConfig({
 				fallback: 'index.html'
 			}),
 			paths: {
-				base: process.env.PUBLIC_BASE_PATH ?? '/livetiming'
+				base: basePath as `/${string}`
 			}
 		})
 	],
