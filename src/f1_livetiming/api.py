@@ -4,11 +4,14 @@ from f1_livetiming.replay.catalog import discover_replays, replay_to_json
 
 from f1_livetiming.replay.catalog import find_replay
 from f1_livetiming.replay.player import ReplayPlayer
+from f1_livetiming.live.manager import LiveManager
 
 app = FastAPI(
     title="F1 Live Timing",
     version="0.1.0",
 )
+
+live_manager = LiveManager(settings.data_dir)
 
 @app.get("/health")
 def health():
@@ -55,3 +58,37 @@ async def replay_websocket(
         await player.run_replay(websocket)
     except WebSocketDisconnect:
         pass
+
+@app.get("/api/v1/live/status")
+def live_status():
+    return live_manager.status()
+
+
+@app.post("/api/v1/live/start")
+async def start_live():
+    if not settings.live_enabled:
+        return {
+            "running": False,
+            "error": "Live Timing is disabled",
+        }
+
+    return await live_manager.start()
+
+
+@app.post("/api/v1/live/stop")
+async def stop_live():
+    return await live_manager.stop()
+
+
+@app.websocket("/ws/live")
+async def live_websocket(websocket: WebSocket):
+    await websocket.accept()
+    await live_manager.add_client(websocket)
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        live_manager.remove_client(websocket)

@@ -5,7 +5,7 @@ import json
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from f1_livetiming.replay.replay_render import ReplayEvent, parse_received_at
 from f1_livetiming.replay.state_builder import RawLiveTimingState
@@ -18,19 +18,24 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 class LiveTimingRunner:
-    def __init__(self, output_path: str | Path, metadata: dict[str, Any] | None = None, stop_delay_seconds: int = 120,):
+    def __init__(
+            self, 
+            output_path: str | Path, 
+            metadata: dict[str, Any] | None = None, 
+            stop_delay_seconds: int = 120,
+            on_message: Callable[[dict[str, Any]], None] | None = None,
+        ):
         self.output_path = Path(output_path)
         self.metadata = metadata or {}
         self.stop_delay_seconds = stop_delay_seconds
+        self.on_message = on_message
 
         self.writer = JsonlWriter(self.output_path)
         self.state = RawLiveTimingState()
-        self.clients: set[Any] = set()
         self.signalr: SignalRClient | None = None
 
         self.running = False
         self.event_count = 0
-        self.loop: asyncio.AbstractEventLoop | None = None
         self.last_dashboard_message: dict[str, Any] | None = None
 
         self.started_at: str | None = None
@@ -81,11 +86,6 @@ class LiveTimingRunner:
             "reason": reason,
         })
 
-    def add_client(self, websocket: Any) -> None:
-        self.clients.add(websocket)
-
-    def remove_client(self, websocket: Any) -> None:
-        self.clients.discard(websocket)
 
     def handle_signalr_event(self, record: dict[str, Any]) -> None:
         self.writer.write(record)
@@ -194,11 +194,6 @@ class LiveTimingRunner:
            "sessionEndDetectedAt": self.session_end_detected_at,
        }
 
-    def broadcast(self, message: dict[str, Any]) -> None:
-        if self.loop is None:
-            return
-
-        raw = json.dumps(message, ensure_ascii=False, default=str)
-
-        for client in list(self.clients):
-            asyncio.run_coroutine_threadsafe(client.send(raw), self.loop)
+    def publish(self, message: dict[str, Any]) -> None:
+        if self.on_message is not None:
+            self.on_message(message)
