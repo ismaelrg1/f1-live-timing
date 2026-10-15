@@ -145,6 +145,18 @@ function remoteUrl(path: string) {
   return `${base}${path}`;
 }
 
+function replayWebSocketUrl(replayId: string) {
+  const url = new URL(
+    remoteUrl('/ws/replay'),
+    window.location.origin
+  );
+
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.searchParams.set('replayId', replayId);
+
+  return url.toString();
+}
+
 function replayApiUrl() {
   return remoteUrl('/api/v1/replays');
 }
@@ -170,6 +182,7 @@ function createDashboardDataStore() {
   const { subscribe, update } = writable<DashboardDataState>(initialState);
 
   let socket: Socket | null = null;
+  let replaySocket: WebSocket | null = null;
   let connectionId = 0;
   let staticMessages: DashboardSocketMessage[] = [];
   let staticMessageIndex = 0;
@@ -180,6 +193,11 @@ function createDashboardDataStore() {
   function disconnectWebSocket() {
     connectionId += 1;
     stopStaticReplay();
+
+    if (replaySocket) {
+      replaySocket.close();
+      replaySocket = null;
+    }
 
     if (socket) {
       socket.emit('livetiming:stop');
@@ -302,6 +320,11 @@ function createDashboardDataStore() {
       return;
     }
 
+    if (mode === 'replay' && replayId) {
+      connectReplayWebSocket(replayId);
+      return;
+    }
+
     disconnectWebSocket();
     const currentConnectionId = connectionId;
 
@@ -389,6 +412,77 @@ function createDashboardDataStore() {
           : 'Replay websocket connection failed'
       }));
     });
+  }
+
+  function connectReplayWebSocket(replayId: string) {
+    disconnectWebSocket();
+    const currentConnectionId = connectionId;
+
+    update((state) => ({
+      ...state,
+      mode: 'replay',
+      connected: false,
+      connecting: true,
+      error: null,
+      lastTopic: null,
+      lastReceivedAt: null,
+      replayProgress: 0,
+      replayPaused: false,
+      replayCurrentIndex: 0,
+      replayTotalEvents: 0,
+      replayMarkers: []
+    }));
+
+    replaySocket = new WebSocket(replayWebSocketUrl(replayId));
+
+    replaySocket.onopen = () => {
+      if (currentConnectionId !== connectionId) return;
+
+      update((state) => ({
+        ...state,
+        connected: true,
+        connecting: false,
+        error: null
+      }));
+    };
+
+    replaySocket.onmessage = (event) => {
+      if (currentConnectionId !== connectionId) return;
+
+      try {
+        const message = JSON.parse(event.data) as DashboardSocketMessage;
+        handleDashboardMessage(message, 'replay');
+      } catch {
+        update((state) => ({
+          ...state,
+          error: 'Invalid replay message received'
+        }));
+      }
+    };
+
+    replaySocket.onerror = () => {
+      if (currentConnectionId !== connectionId) return;
+
+      update((state) => ({
+        ...state,
+        connected: false,
+        connecting: false,
+        error: 'Replay websocket connection failed'
+      }));
+    };
+
+    replaySocket.onclose = () => {
+      if (currentConnectionId !== connectionId) return;
+
+      update((state) => ({
+        ...state,
+        connected: false,
+        connecting: false,
+        replayPaused: true
+      }));
+
+      replaySocket = null;
+    };
   }
 
   async function loadReplays() {
@@ -544,6 +638,14 @@ function createDashboardDataStore() {
   function sendReplayControl(payload: Record<string, unknown>) {
     if (dashboardRuntimeMode === 'static') {
       handleStaticReplayControl(payload);
+      return;
+    }
+
+    if (replaySocket?.readyState === WebSocket.OPEN) {
+      replaySocket.send(JSON.stringify({
+        type: 'replay_control',
+        ...payload
+      }));
       return;
     }
 
