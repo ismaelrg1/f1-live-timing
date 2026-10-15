@@ -1,4 +1,3 @@
-import { io, type Socket } from 'socket.io-client';
 import { writable } from 'svelte/store';
 import type { DashboardSessionState, DriverRow } from '../types/dashboard';
 
@@ -157,6 +156,18 @@ function replayWebSocketUrl(replayId: string) {
   return url.toString();
 }
 
+function liveWebSocketUrl() {
+  const url = new URL(
+    remoteUrl('/ws/live'),
+    window.location.origin
+  );
+
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+
+  return url.toString();
+}
+
+
 function replayApiUrl() {
   return remoteUrl('/api/v1/replays');
 }
@@ -181,7 +192,7 @@ function staticReplayUrl(replayId: string) {
 function createDashboardDataStore() {
   const { subscribe, update } = writable<DashboardDataState>(initialState);
 
-  let socket: Socket | null = null;
+  let liveSocket: WebSocket | null = null;
   let replaySocket: WebSocket | null = null;
   let connectionId = 0;
   let staticMessages: DashboardSocketMessage[] = [];
@@ -199,10 +210,9 @@ function createDashboardDataStore() {
       replaySocket = null;
     }
 
-    if (socket) {
-      socket.emit('livetiming:stop');
-      socket.disconnect();
-      socket = null;
+    if (liveSocket) {
+      liveSocket.close();
+      liveSocket = null;
     }
 
     teamRadioStore.reset();
@@ -302,26 +312,8 @@ function createDashboardDataStore() {
     }));
   }
 
-  function connectSocket(mode: DashboardDataMode, replayId?: string) {
+  function connectLiveWebSocket() {
     if (dashboardRuntimeMode === 'static') {
-      if (mode === 'replay' && replayId) {
-        void connectStaticReplayById(replayId);
-        return;
-      }
-
-      update((state) => ({
-        ...state,
-        mode: 'replay',
-        connected: false,
-        connecting: false,
-        liveRunning: false,
-        error: 'Live timing is not available in the static build'
-      }));
-      return;
-    }
-
-    if (mode === 'replay' && replayId) {
-      connectReplayWebSocket(replayId);
       return;
     }
 
@@ -330,26 +322,18 @@ function createDashboardDataStore() {
 
     update((state) => ({
       ...state,
-      mode,
+      mode: 'live',
       connected: false,
       connecting: true,
       error: null,
       lastTopic: null,
       lastReceivedAt: null,
-      liveRunning: mode === 'live' ? false : state.liveRunning,
-      replayProgress: 0,
-      replayPaused: false,
-      replayCurrentIndex: 0,
-      replayTotalEvents: 0,
-      replayMarkers: []
+      liveRunning: false
     }));
 
-    socket = io('/livetiming', {
-      transports: ['websocket'],
-      withCredentials: true
-    });
+    liveSocket = new WebSocket(liveWebSocketUrl());
 
-    socket.on('connect', () => {
+    liveSocket.onopen = () => {
       if (currentConnectionId !== connectionId) return;
 
       update((state) => ({
@@ -358,60 +342,46 @@ function createDashboardDataStore() {
         connecting: false,
         error: null
       }));
+    };
 
-      if (mode === 'live') {
-        socket?.emit('livetiming:live');
-        return;
-      }
-
-      socket?.emit('livetiming:replay', { replayId });
-    });
-
-    socket.on('livetiming:message', (message: DashboardSocketMessage) => {
-
-      if (currentConnectionId !== connectionId) {
-        return;
-      }
-
-      handleDashboardMessage(message, mode);
-    });
-
-    socket.on('livetiming:error', (message: ErrorMessage) => {
+    liveSocket.onmessage = (event) => {
       if (currentConnectionId !== connectionId) return;
 
-      update((state) => ({
-        ...state,
-        error: message.error
-      }));
-    });
+      try {
+        const message = JSON.parse(event.data) as DashboardSocketMessage;
+        handleDashboardMessage(message, 'live');
+      } catch {
+        update((state) => ({
+          ...state,
+          error: 'Invalid live message received'
+        }));
+      }
+    };
 
-    socket.on('disconnect', () => {
+    liveSocket.onerror = () => {
       if (currentConnectionId !== connectionId) return;
 
       update((state) => ({
         ...state,
         connected: false,
         connecting: false,
-        liveRunning: mode === 'live' ? false : state.liveRunning,
-        replayPaused: mode === 'replay' ? true : state.replayPaused
+        liveRunning: false,
+        error: 'Live timing websocket connection failed'
       }));
+    };
 
-      socket = null;
-    });
-
-    socket.on('connect_error', () => {
+    liveSocket.onclose = () => {
       if (currentConnectionId !== connectionId) return;
 
       update((state) => ({
         ...state,
         connected: false,
         connecting: false,
-        liveRunning: mode === 'live' ? false : state.liveRunning,
-        error: mode === 'live'
-          ? 'Live timing websocket connection failed'
-          : 'Replay websocket connection failed'
+        liveRunning: false
       }));
-    });
+
+      liveSocket = null;
+    };
   }
 
   function connectReplayWebSocket(replayId: string) {
@@ -517,17 +487,13 @@ function createDashboardDataStore() {
     }
   }
 
-  function connectLiveWebSocket() {
-    connectSocket('live');
-  }
-
   function connectReplayById(replayId: string) {
     update((state) => ({
       ...state,
       selectedReplayId: replayId
     }));
 
-    connectSocket('replay', replayId);
+    connectReplayWebSocket(replayId);
   }
 
   async function connectStaticReplayById(replayId: string) {
@@ -651,10 +617,6 @@ function createDashboardDataStore() {
 
     if (!socket || !socket.connected) return;
 
-    socket.emit('livetiming:control', {
-      type: 'replay_control',
-      ...payload
-    });
   }
 
   function handleStaticReplayControl(payload: Record<string, unknown>) {

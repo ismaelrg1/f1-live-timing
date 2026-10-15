@@ -48,7 +48,6 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
-		"lucide-svelte": "^1.0.1",
-		"socket.io-client": "^4.8.4"
+		"lucide-svelte": "^1.0.1"
 	}
 }

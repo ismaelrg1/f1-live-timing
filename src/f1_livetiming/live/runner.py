@@ -78,7 +78,7 @@ class LiveTimingRunner:
         self.stopped_at = utc_now()
         self.stop_reason = reason
 
-        self.broadcast({
+        self.publish({
             "type": "live_status",
             "running": False,
             "hasState": self.last_dashboard_message is not None,
@@ -125,7 +125,7 @@ class LiveTimingRunner:
         }
 
         self.last_dashboard_message = message
-        self.broadcast(message)
+        self.publish(message)
 
     def detect_session_end(self, topic: str, data: Any) -> None:
         if self.session_end_detected:
@@ -154,7 +154,7 @@ class LiveTimingRunner:
         self.session_end_detected = True
         self.session_end_detected_at = utc_now()
 
-        self.broadcast({
+        self.publish({
             "type": "live_status",
             "running": self.running,
             "hasState": self.last_dashboard_message is not None,
