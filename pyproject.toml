@@ -1,0 +1,24 @@
+[project]
+name = "f1-livetiming"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.143.2",
+    "fastf1>=3.8.3",
+    "pandas>=2.3.3",
+    "requests>=2.34.2",
+    "signalrcore>=1.0.2",
+    "uvicorn[standard]>=0.54.0",
+    "websockets>=17.2",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
