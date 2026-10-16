@@ -29,7 +29,10 @@ class LiveManager:
 
         return self.runner.status()
 
-    async def start(self) -> dict[str, Any]:
+    async def start(
+        self,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         async with self.lock:
             if self.runner is not None and self.runner.running:
                 return self.runner.status()
@@ -42,16 +45,17 @@ class LiveManager:
 
             self.runner = LiveTimingRunner(
                 output_path,
+                metadata=metadata,
                 on_message=self.publish_from_runner,
             )
 
             await asyncio.to_thread(self.runner.start)
             return self.runner.status()
 
-    async def stop(self) -> dict[str, Any]:
+    async def stop(self, reason: str = "manual") -> dict[str, Any]:
         async with self.lock:
             if self.runner is not None and self.runner.running:
-                await asyncio.to_thread(self.runner.stop, "manual")
+                await asyncio.to_thread(self.runner.stop, reason)
 
             return self.status()
 

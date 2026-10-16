@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from f1_livetiming.config import settings
 from f1_livetiming.replay.catalog import discover_replays, replay_to_json
@@ -5,13 +8,46 @@ from f1_livetiming.replay.catalog import discover_replays, replay_to_json
 from f1_livetiming.replay.catalog import find_replay
 from f1_livetiming.replay.player import ReplayPlayer
 from f1_livetiming.live.manager import LiveManager
+from f1_livetiming.live.scheduler import LiveScheduler
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    scheduler_task: asyncio.Task[None] | None = None
+
+    if settings.live_enabled and settings.scheduler_enabled:
+        scheduler_task = asyncio.create_task(
+            live_scheduler.run(),
+            name="live-scheduler",
+        )
+
+    try:
+        yield
+    finally:
+        if scheduler_task is not None:
+            scheduler_task.cancel()
+
+            with suppress(asyncio.CancelledError):
+                await scheduler_task
+
+        if live_manager.status().get("running"):
+            await live_manager.stop("shutdown")
+
 
 app = FastAPI(
     title="F1 Live Timing",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 live_manager = LiveManager(settings.data_dir)
+live_scheduler = LiveScheduler(
+    manager=live_manager,
+    data_dir=settings.data_dir,
+    poll_seconds=settings.scheduler_poll_seconds,
+    lead_seconds=settings.scheduler_lead_seconds,
+    max_session_seconds=settings.scheduler_max_session_seconds,
+)
 
 @app.get("/health")
 def health():
