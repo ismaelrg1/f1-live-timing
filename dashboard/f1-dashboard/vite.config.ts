@@ -73,5 +73,9 @@ export default defineConfig({
 				}
 			}
 		]
-	}
+	},
+
+	define: {
+		'import.meta.env.VITE_DASHBOARD_BASE_PATH': JSON.stringify(basePath)
+	},
 });

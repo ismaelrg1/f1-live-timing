@@ -140,8 +140,13 @@ const initialState: DashboardDataState = {
 };
 
 function remoteUrl(path: string) {
-  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-  return `${base}${path}`;
+  const base = (
+    import.meta.env.VITE_DASHBOARD_BASE_PATH ?? ''
+  ).replace(/\/$/, '');
+
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+  return `${base}${cleanPath}`;
 }
 
 function replayWebSocketUrl(replayId: string) {
